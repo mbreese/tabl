@@ -165,6 +165,7 @@ func (tv *TextViewer) writeLine(out io.Writer, line *TextRecord, isHeader bool) 
 			fmt.Fprint(out, "| ")
 		}
 
+		// fmt.Fprintf(os.Stderr, "[%d] %s", i, v)
 		r := []rune(v)
 
 		s := fmt.Sprintf("%%-%ds", tv.colWidth[i])
@@ -181,6 +182,8 @@ func (tv *TextViewer) writeLine(out io.Writer, line *TextRecord, isHeader bool) 
 		for i := 0; i < len(line.Values); i++ {
 			if i > 0 {
 				fmt.Fprint(out, "-+-")
+			} else if tv.showLineNum {
+				fmt.Fprint(out, "----")
 			}
 			for j := 0; j < tv.colWidth[i]; j++ {
 				fmt.Fprint(out, "-")

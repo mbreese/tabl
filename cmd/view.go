@@ -9,6 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// IsCSV -- the file is a CSV file
+var IsCSV bool
+
 // NoHeader -- the file has no header
 var NoHeader bool
 
@@ -27,6 +30,7 @@ var MaxWidth int = 0
 func init() {
 	viewCmd.Flags().BoolVarP(&ShowComments, "show-comments", "H", false, "Show comments")
 	viewCmd.Flags().BoolVarP(&ShowLineNum, "show-linenum", "L", false, "Show line number")
+	viewCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
 	viewCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
 	viewCmd.Flags().IntVar(&MinWidth, "min-width", 0, "Minimum column width")
 	viewCmd.Flags().IntVar(&MaxWidth, "max-width", 0, "Maximum column width")
@@ -47,7 +51,12 @@ var viewCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		txt := textfile.NewTabFile(args[0])
+		var txt *textfile.DelimitedTextFile
+		if !IsCSV {
+			txt = textfile.NewTabFile(args[0])
+		} else {
+			txt = textfile.NewCSVFile(args[0])
+		}
 		textfile.NewTextViewer(txt).
 			WithShowComments(ShowComments).
 			WithShowLineNum(ShowLineNum).

@@ -582,11 +582,15 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 		line, _ := e.Value.(*TextRecord)
 
 		for j, v := range showCols[:showColCount] {
-			vals[j] = line.Values[v]
+			if len(line.Values) > v {
+				vals[j] = line.Values[v]
 
-			r := []rune(line.Values[v])
-			if len(r) > tv.colWidth[v] {
-				vals[j] = string(r[:tv.colWidth[v]]) + "$"
+				r := []rune(line.Values[v])
+				if len(r) > tv.colWidth[v] {
+					vals[j] = string(r[:tv.colWidth[v]]) + "$"
+				}
+			} else {
+				vals[j] = ""
 			}
 
 		}

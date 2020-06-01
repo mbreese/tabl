@@ -74,7 +74,7 @@ func NewTabFileSize(fname string, bufferSize int) *DelimitedTextFile {
 
 // NewCSVFile returns an open comma-delimited text file
 func NewCSVFile(fname string) *DelimitedTextFile {
-	return NewTabFileSize(fname, defaultBufferSize)
+	return NewCSVFileSize(fname, defaultBufferSize)
 }
 
 // NewCSVFileSize returns an open comma-delimited text file
@@ -180,10 +180,14 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 	var b rune = 0
 
 	l := list.New()
-	// fmt.Println("==========")
+	// fmt.Fprintln(os.Stderr, "\n==========\n")
 	for err == nil {
 
 		b, err = txt.nextRune()
+		if err != nil {
+			break
+		}
+		// fmt.Fprintf(os.Stderr, "%s", b)
 		sbRaw.WriteRune(b)
 
 		if first {

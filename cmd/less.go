@@ -12,6 +12,7 @@ import (
 func init() {
 	// lessCmd.Flags().BoolVarP(&ShowLineNum, "show-linenum", "L", false, "Show line number")
 	lessCmd.Flags().BoolVar(&NoHeader, "noheader", false, "File has no header")
+	lessCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
 	lessCmd.Flags().IntVar(&MinWidth, "min-width", 0, "Minimum column width")
 	lessCmd.Flags().IntVar(&MaxWidth, "max-width", 0, "Maximum column width")
 	rootCmd.AddCommand(lessCmd)
@@ -31,7 +32,12 @@ var lessCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		txt := textfile.NewTabFile(args[0])
+		var txt *textfile.DelimitedTextFile
+		if !IsCSV {
+			txt = textfile.NewTabFile(args[0])
+		} else {
+			txt = textfile.NewCSVFile(args[0])
+		}
 		textfile.NewTextPager(txt).
 			WithShowLineNum(ShowLineNum).
 			WithMaxWidth(MaxWidth).
