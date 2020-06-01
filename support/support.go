@@ -21,3 +21,14 @@ func MinInt(nums ...int) int {
 	}
 	return v
 }
+
+// BoolSum -- count the number of "true" values in a boolean array
+func BoolSum(vals []bool) int {
+	acc := 0
+	for _, v := range vals {
+		if v {
+			acc++
+		}
+	}
+	return acc
+}

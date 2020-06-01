@@ -17,38 +17,44 @@ const maxLines = 20000
 
 // TextPager is a viewer for tab-delimited data, it handles formatting and showing the data on a stream
 type TextPager struct {
-	txt          *DelimitedTextFile
-	showComments bool
-	showLineNum  bool
-	hasHeader    bool
-	minWidth     int
-	maxWidth     int
-	colNames     []string
-	colWidth     []int
-	lines        *list.List
-	topRow       *list.Element
-	activeRow    int
-	leftCol      int
-	visibleRows  int
-	visibleCols  int
+	txt           *DelimitedTextFile
+	showComments  bool
+	showLineNum   bool
+	hasHeader     bool
+	minWidth      int
+	maxWidth      int
+	colNames      []string
+	colWidth      []int
+	lines         *list.List
+	topRow        *list.Element
+	activeRow     int
+	leftCol       int
+	visibleRows   int
+	visibleCols   int
+	colSticky     []bool
+	colSelectMode bool
+	activeCol     int
 }
 
 // NewTextPager - create a new text viewer
 func NewTextPager(f *DelimitedTextFile) *TextPager {
 	return &TextPager{
-		txt:          f,
-		showComments: false,
-		showLineNum:  false,
-		hasHeader:    true,
-		minWidth:     0,
-		maxWidth:     0,
-		colNames:     nil,
-		colWidth:     nil,
-		lines:        list.New(),
-		activeRow:    1,
-		leftCol:      0,
-		visibleRows:  0,
-		visibleCols:  0,
+		txt:           f,
+		showComments:  false,
+		showLineNum:   false,
+		hasHeader:     true,
+		minWidth:      0,
+		maxWidth:      0,
+		colNames:      nil,
+		colWidth:      nil,
+		lines:         list.New(),
+		activeRow:     1,
+		leftCol:       0,
+		visibleRows:   0,
+		visibleCols:   0,
+		colSticky:     nil,
+		colSelectMode: false,
+		activeCol:     0,
 	}
 }
 
@@ -126,8 +132,13 @@ func (tv *TextPager) load() {
 			copy(newWidths, tv.colWidth)
 			tv.colWidth = newWidths
 		}
+
+		if tv.colSticky == nil {
+			tv.colSticky = make([]bool, len(line.Values))
+		}
+
 		for j := 0; j < len(line.Values); j++ {
-			r := []rune(line.Values[j])
+			r := []rune(line.Values[j] + "   ")
 			tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
 			if tv.maxWidth > 0 {
 				tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
@@ -183,18 +194,18 @@ func (tv *TextPager) Show() {
 	p0.SetRect(0, 0, width, 3)
 	p0.Border = true
 
-	inSearch := false
+	state := "view"
 	query := ""
 
 	lastMatchCol := 0
 
 	for e := range ui.PollEvents() {
 		// fmt.Printf("%v\n", e)
-		if inSearch {
+		if state == "search" {
 			switch e.ID {
 			case "<C-c>", "<Escape>":
 				tb.HideCursor()
-				inSearch = false
+				state = "view"
 				query = ""
 				ui.Render(tbl)
 			case "<Backspace>":
@@ -253,7 +264,7 @@ func (tv *TextPager) Show() {
 					for tv.lines.Len() > maxLines {
 						tv.lines.Remove(tv.lines.Front())
 					}
-					inSearch = false
+					state = "view"
 					tv.updateTable(tbl)
 					ui.Render(tbl)
 				}
@@ -283,10 +294,82 @@ func (tv *TextPager) Show() {
 					ui.Render(p0)
 				}
 			}
+		} else if state == "select" {
+			switch e.ID {
+			case "q", "<Escape>":
+				state = "view"
+				tv.colSelectMode = false
+				if tv.leftCol < 0 {
+					tv.leftCol = 0
+				}
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+			case "<C-c>":
+				return
+			case "<Resize>":
+				payload := e.Payload.(ui.Resize)
+				tbl.SetRect(0, 0, payload.Width, payload.Height)
+				tv.visibleRows = payload.Height
+				tv.visibleCols = payload.Width
+				tv.updateTable(tbl)
+				p0.SetRect(0, 0, tv.visibleCols, 3)
+				ui.Render(tbl)
+			case "x", "<Space>":
+				j := -support.BoolSum(tv.colSticky)
+				found := false
+				for i, v := range tv.colSticky {
+					if v {
+						if j == tv.leftCol {
+							tv.colSticky[i] = !tv.colSticky[i]
+							found = true
+							break
+						}
+						j++
+					}
+				}
+
+				if !found {
+					for i, v := range tv.colSticky {
+						if !v {
+							if j == tv.leftCol {
+								tv.colSticky[i] = !tv.colSticky[i]
+								found = true
+								break
+							}
+							j++
+						}
+					}
+				}
+
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+			case "j", "<Down>":
+				state = "view"
+				tv.colSelectMode = false
+				if tv.leftCol < 0 {
+					tv.leftCol = 0
+				}
+
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+			case "<Right>":
+				tv.leftCol++
+				if tv.leftCol >= len(tv.colWidth)-support.BoolSum(tv.colSticky) {
+					tv.leftCol = len(tv.colWidth) - support.BoolSum(tv.colSticky) - 1
+				}
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+			case "<Left>":
+				tv.leftCol--
+				if tv.leftCol < -support.BoolSum(tv.colSticky) {
+					tv.leftCol = -support.BoolSum(tv.colSticky)
+				}
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+			}
 		} else {
 			switch e.ID {
-			case "q", "<C-c>", "<Escape>":
-
+			case "q", "<Escape>", "<C-c>":
 				return
 			case "<Resize>":
 				payload := e.Payload.(ui.Resize)
@@ -363,8 +446,8 @@ func (tv *TextPager) Show() {
 				ui.Render(tbl)
 			case "<Right>":
 				tv.leftCol++
-				if tv.leftCol >= len(tv.colWidth) {
-					tv.leftCol = len(tv.colWidth) - 1
+				if tv.leftCol >= len(tv.colWidth)-support.BoolSum(tv.colSticky) {
+					tv.leftCol = len(tv.colWidth) - support.BoolSum(tv.colSticky) - 1
 				}
 				tv.updateTable(tbl)
 				ui.Render(tbl)
@@ -375,23 +458,24 @@ func (tv *TextPager) Show() {
 				}
 				tv.updateTable(tbl)
 				ui.Render(tbl)
+			case "x":
+				state = "select"
+				tv.colSelectMode = true
+				if support.BoolSum(tv.colSticky) > 0 {
+					tv.leftCol = 0
+				}
 
+				tv.updateTable(tbl)
+				ui.Render(tbl)
 			case "/":
 				p0.Text = " Search: " + query
 				tb.SetCursor(len(p0.Text)+1, 1)
 
 				ui.Render(p0)
-				inSearch = true
+				state = "search"
 
-				// default:
-				// 	tbl.Rows[1][0] = fmt.Sprintf("%s", e.ID)
-				// 	ui.Render(tbl)
 			}
 		}
-		// switch e.Type {
-		// case ui.KeyboardEvent: // handle all key presses
-		// ui.Render(p)
-		// }
 	}
 }
 
@@ -401,30 +485,92 @@ var headerStyle ui.Style = ui.NewStyle(ui.ColorClear, ui.ColorClear, ui.Modifier
 
 func (tv *TextPager) updateTable(tbl *widgets.Table) {
 
-	size := 1
-	rightCol := tv.leftCol
+	showCols := make([]int, len(tv.colNames))
+	showColCount := 0
 
-	for rightCol < len(tv.colNames) && size < tv.visibleCols {
-		size += tv.colWidth[rightCol] + 1
-		rightCol++
+	size := 1
+	j := -support.BoolSum(tv.colSticky)
+
+	for i, v := range tv.colWidth {
+		if tv.colSticky[i] {
+			size += v + 1
+			showCols[showColCount] = i
+			showColCount++
+			j++
+		}
+	}
+
+	for i, v := range tv.colWidth {
+		if !tv.colSticky[i] {
+			if j >= tv.leftCol && size+v+1 < tv.visibleCols {
+				size += v + 1
+				showCols[showColCount] = i
+				showColCount++
+			}
+			j++
+		}
 	}
 
 	tbl.Rows = make([][]string, tv.visibleRows-2)
 	tbl.RowStyles = make(map[int]ui.Style)
 
-	headerVals := make([]string, (rightCol - tv.leftCol))
-	for i, v := range tv.colNames[tv.leftCol:rightCol] {
-		headerVals[i] = v
-	}
+	headerVals := make([]string, showColCount)
+	widths := make([]int, showColCount)
 
-	widths := make([]int, (rightCol - tv.leftCol))
-	for i, v := range tv.colWidth[tv.leftCol:rightCol] {
-		widths[i] = v + 1
+	j = -support.BoolSum(tv.colSticky)
+	k := 0
+	for i, v := range tv.colNames {
+		if tv.colSticky[i] {
+			for len(v) < tv.colWidth[i] {
+				v += " "
+			}
+			headerVals[k] = v + "*"
+			widths[k] = tv.colWidth[i] + 1
+
+			r := []rune(v)
+			if len(r) > tv.colWidth[i] {
+				headerVals[k] = string(r[:tv.colWidth[i]]) + "$"
+			}
+
+			if j == tv.leftCol && tv.colSelectMode {
+				headerVals[k] = headerVals[k][0:len(headerVals[k])-3] + "<=*"
+				// headerVals[k] = headerVals[k] + "<="
+			}
+
+			k++
+			j++
+		}
+	}
+	for i, v := range tv.colNames {
+		if !tv.colSticky[i] && k < showColCount {
+			if j >= tv.leftCol {
+				for len(v) < tv.colWidth[i] {
+					v += " "
+				}
+				headerVals[k] = v + " "
+				widths[k] = tv.colWidth[i] + 1
+				r := []rune(v)
+				if len(r) > tv.colWidth[i] {
+					headerVals[k] = string(r[:tv.colWidth[i]]) + "$"
+				}
+
+				// headerVals[k] = v //[:support.MinInt(tv.colWidth[i], len(v))]
+
+				if j == tv.leftCol && tv.colSelectMode {
+					headerVals[k] = headerVals[k][0:len(headerVals[k])-3] + "<= "
+				}
+				k++
+			}
+			j++
+		}
 	}
 
 	tbl.ColumnWidths = widths
 	tbl.Rows[0] = headerVals
 	tbl.RowStyles[0] = headerStyle
+	if tv.colSelectMode {
+		tbl.RowStyles[0] = activeStyle
+	}
 
 	e := tv.topRow
 	setActive := false
@@ -432,15 +578,23 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 
 	for i := 1; e != nil && i < len(tbl.Rows); i++ {
 		lastIdx = i
-		vals := make([]string, (rightCol - tv.leftCol))
+		vals := make([]string, showColCount)
 		line, _ := e.Value.(*TextRecord)
 
-		for j, v := range line.Values[tv.leftCol:rightCol] {
-			vals[j] = v
+		for j, v := range showCols[:showColCount] {
+			vals[j] = line.Values[v]
+
+			r := []rune(line.Values[v])
+			if len(r) > tv.colWidth[v] {
+				vals[j] = string(r[:tv.colWidth[v]]) + "$"
+			}
+
 		}
 
+		// tbl.Rows[i] = vals[:support.MinInt(tv.colWidth[i], len(vals))]
+
 		tbl.Rows[i] = vals
-		if i == tv.activeRow {
+		if !tv.colSelectMode && i == tv.activeRow {
 			tbl.RowStyles[i] = activeStyle
 			setActive = true
 		} else {
@@ -458,9 +612,13 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 		}
 		e = e.Next()
 	}
-	if !setActive {
+	if !tv.colSelectMode && !setActive {
 		tbl.RowStyles[lastIdx] = activeStyle
 		tv.activeRow = lastIdx
 	}
+	// tbl.Rows[1][0] = fmt.Sprintf("%v, %v", tv.leftCol, support.BoolSum(tv.colSticky))
+	// if tbl.Rows[2] != nil {
+	// 	tbl.Rows[2][0] = fmt.Sprintf("%v", showCols)
+	// }
 
 }
