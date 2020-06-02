@@ -2,6 +2,7 @@ package textfile
 
 import (
 	"container/list"
+	"fmt"
 	"log"
 	"strings"
 
@@ -488,7 +489,12 @@ var headerStyle ui.Style = ui.NewStyle(ui.ColorClear, ui.ColorClear, ui.Modifier
 
 func (tv *TextPager) updateTable(tbl *widgets.Table) {
 
-	showCols := make([]int, len(tv.colNames))
+	var showCols []int
+	if support.BoolSum(tv.colSticky) > 0 {
+		showCols = make([]int, len(tv.colNames)+1)
+	} else {
+		showCols = make([]int, len(tv.colNames))
+	}
 	showColCount := 0
 
 	size := 1
@@ -501,18 +507,37 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 			showColCount++
 			j++
 		}
+		if size > tv.visibleCols {
+			break
+		}
+	}
+
+	if support.BoolSum(tv.colSticky) > 0 {
+		size++
+		showCols[showColCount] = -1
+		showColCount++
 	}
 
 	for i, v := range tv.colWidth {
 		if !tv.colSticky[i] {
-			if j >= tv.leftCol && size+v+1 < tv.visibleCols {
+			if j >= tv.leftCol {
 				size += v + 1
 				showCols[showColCount] = i
 				showColCount++
 			}
+			if size > tv.visibleCols {
+				break
+			}
 			j++
 		}
 	}
+	// if size >= tv.visibleCols {
+	// 	showColCount--
+	// }
+
+	// showCols2 := make([]int, showColCount)
+	// copy(showCols2, showCols)
+	// showCols = showCols2
 
 	tbl.Rows = make([][]string, tv.visibleRows-2)
 	tbl.RowStyles = make(map[int]ui.Style)
@@ -520,6 +545,7 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 	headerVals := make([]string, showColCount)
 	widths := make([]int, showColCount)
 
+	size = 1
 	j = -support.BoolSum(tv.colSticky)
 	k := 0
 	for i, v := range tv.colNames {
@@ -528,7 +554,8 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 				v += " "
 			}
 			headerVals[k] = v + "*"
-			widths[k] = tv.colWidth[i] + 1
+			widths[k] = support.MaxInt(0, support.MinInt(tv.colWidth[i]+1, tv.visibleCols-size))
+			size += tv.colWidth[i] + 1
 
 			r := []rune(v)
 			if len(r) > tv.colWidth[i] {
@@ -544,6 +571,12 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 			j++
 		}
 	}
+	if support.BoolSum(tv.colSticky) > 0 {
+		headerVals[k] = ""
+		widths[k] = 0
+		size++
+		k++
+	}
 	for i, v := range tv.colNames {
 		if !tv.colSticky[i] && k < showColCount {
 			if j >= tv.leftCol {
@@ -551,7 +584,8 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 					v += " "
 				}
 				headerVals[k] = v + " "
-				widths[k] = tv.colWidth[i] + 1
+				widths[k] = support.MaxInt(0, support.MinInt(tv.colWidth[i]+1, tv.visibleCols-size))
+				size += tv.colWidth[i] + 1
 				r := []rune(v)
 				if len(r) > tv.colWidth[i] {
 					headerVals[k] = string(r[:tv.colWidth[i]]) + "$"
@@ -585,12 +619,12 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 		line, _ := e.Value.(*TextRecord)
 
 		for j, v := range showCols[:showColCount] {
-			if len(line.Values) > v {
+			if v >= 0 && len(line.Values) > v {
 				vals[j] = line.Values[v]
 
 				r := []rune(line.Values[v])
-				if len(r) > tv.colWidth[v] {
-					vals[j] = string(r[:tv.colWidth[v]]) + "$"
+				if len(r) > widths[j] {
+					vals[j] = string(r[:widths[j]]) + "$"
 				}
 			} else {
 				vals[j] = ""
@@ -623,9 +657,9 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 		tbl.RowStyles[lastIdx] = activeStyle
 		tv.activeRow = lastIdx
 	}
-	// tbl.Rows[1][0] = fmt.Sprintf("%v, %v", tv.leftCol, support.BoolSum(tv.colSticky))
 	// if tbl.Rows[2] != nil {
-	// 	tbl.Rows[2][0] = fmt.Sprintf("%v", showCols)
+	tbl.Rows[1][0] = fmt.Sprintf("%v", showCols[:showColCount])
+	tbl.Rows[2][0] = fmt.Sprintf("%d, %d", size, tv.visibleCols)
 	// }
 
 }
