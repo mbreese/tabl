@@ -250,6 +250,8 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 		if l.Len() > 0 {
 			txt.isEOF = true
 			err = nil
+		} else {
+			return nil, err
 		}
 	}
 
