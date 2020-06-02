@@ -374,6 +374,7 @@ func (tv *TextPager) Show() {
 		} else {
 			switch e.ID {
 			case "q", "<Escape>", "<C-c>":
+				// quit
 				return
 			case "<Resize>":
 				payload := e.Payload.(ui.Resize)
@@ -384,6 +385,7 @@ func (tv *TextPager) Show() {
 				p0.SetRect(0, 0, tv.visibleCols, 3)
 				ui.Render(tbl)
 			case "<Space>":
+				// down a page
 				e := tv.topRow
 				i := 0
 				for i = 0; e.Next() != nil && i < tv.visibleRows-3; i++ {
@@ -404,7 +406,20 @@ func (tv *TextPager) Show() {
 				tv.topRow = e
 				tv.updateTable(tbl)
 				ui.Render(tbl)
+			case "m":
+				// mark row
+				e := tv.topRow
+				for i := 0; e.Next() != nil && i < tv.activeRow-1; i++ {
+					e = e.Next()
+				}
+
+				t, _ := e.Value.(*TextRecord)
+				t.Flag = !t.Flag
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+
 			case "b":
+				// back a page
 				e := tv.topRow
 				i := 0
 				for i = 0; e.Prev() != nil && i < tv.visibleRows-3; i++ {
@@ -417,6 +432,7 @@ func (tv *TextPager) Show() {
 				tv.updateTable(tbl)
 				ui.Render(tbl)
 			case "j", "<Down>":
+				// down a line
 				tv.activeRow++
 
 				maxActiveRow := 0
@@ -438,6 +454,7 @@ func (tv *TextPager) Show() {
 					tv.lines.Remove(tv.lines.Front())
 				}
 			case "k", "<Up>":
+				// up a line
 				tv.activeRow--
 				if tv.activeRow < 1 {
 					tv.activeRow = 1
@@ -448,14 +465,16 @@ func (tv *TextPager) Show() {
 				}
 				tv.updateTable(tbl)
 				ui.Render(tbl)
-			case "<Right>":
+			case "l", "<Right>":
+				// right a col
 				tv.leftCol++
 				if tv.leftCol >= len(tv.colWidth)-support.BoolSum(tv.colSticky) {
 					tv.leftCol = len(tv.colWidth) - support.BoolSum(tv.colSticky) - 1
 				}
 				tv.updateTable(tbl)
 				ui.Render(tbl)
-			case "<Left>":
+			case "h", "<Left>":
+				// left a col
 				tv.leftCol--
 				if tv.leftCol < 0 {
 					tv.leftCol = 0
@@ -486,6 +505,7 @@ func (tv *TextPager) Show() {
 var defaultStyle ui.Style = ui.NewStyle(ui.ColorClear)
 var activeStyle ui.Style = ui.NewStyle(ui.ColorClear, ui.ColorClear, ui.ModifierBold|ui.ModifierReverse)
 var headerStyle ui.Style = ui.NewStyle(ui.ColorClear, ui.ColorClear, ui.ModifierBold|ui.ModifierUnderline)
+var markedStyle ui.Style = ui.NewStyle(ui.ColorGreen, ui.ColorClear, ui.ModifierBold|ui.ModifierReverse)
 
 func (tv *TextPager) updateTable(tbl *widgets.Table) {
 
@@ -632,12 +652,16 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 
 		}
 
+		t, _ := e.Value.(*TextRecord)
+
 		// tbl.Rows[i] = vals[:support.MinInt(tv.colWidth[i], len(vals))]
 
 		tbl.Rows[i] = vals
 		if !tv.colSelectMode && i == tv.activeRow {
 			tbl.RowStyles[i] = activeStyle
 			setActive = true
+		} else if t.Flag {
+			tbl.RowStyles[i] = markedStyle
 		} else {
 			tbl.RowStyles[i] = defaultStyle
 		}

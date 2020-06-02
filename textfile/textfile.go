@@ -36,6 +36,7 @@ type TextRecord struct {
 	LineNum     int
 	DataLineNum int
 	RawString   string
+	Flag        bool
 }
 
 // NewDelimitedFile returns an open delimited text file
@@ -253,6 +254,7 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 			LineNum:     txt.curLineNum,
 			DataLineNum: -1,
 			RawString:   sbRaw.String(),
+			Flag:        false,
 		}, err
 	}
 	cols := make([]string, l.Len())
@@ -269,6 +271,7 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 		LineNum:     txt.curLineNum,
 		DataLineNum: txt.curDataLineNum,
 		RawString:   sbRaw.String(),
+		Flag:        false,
 	}, err
 
 }
