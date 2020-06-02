@@ -1,6 +1,7 @@
 package bufread_test
 
 import (
+	"compress/gzip"
 	"io"
 	"testing"
 
@@ -241,5 +242,31 @@ func TestPeekReadPeek(t *testing.T) {
 
 	t.Logf("Peek: %s", buf)
 
+	br.Close()
+}
+
+func TestReadGzip(t *testing.T) {
+	br, _ := gzip.NewReader(bufread.OpenFileSize("testdata/test.txt.gz", 100000))
+
+	buf := make([]byte, 10000)
+	n, err := br.Read(buf)
+	if err != nil {
+		t.Errorf("Didn't expect EOF, but got %d bytes?", n)
+	}
+
+	if n != 166 {
+		t.Errorf("Read %d bytes, but expected 166\n%s", n, buf)
+	}
+
+	if buf[0] != '#' || buf[1] != ' ' || buf[2] != 'c' || buf[3] != 'o' {
+		t.Errorf("Wrong read value, expected \"# com\", but got: %s", buf)
+	}
+
+	n, err = br.Read(buf)
+	if err == nil || err != io.EOF {
+		t.Errorf("Expected EOF, and read nothing? Read %d bytes? err=%s", n, err)
+	}
+
+	// fmt.Println("Here?")
 	br.Close()
 }

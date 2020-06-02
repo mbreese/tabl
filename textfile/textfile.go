@@ -140,10 +140,14 @@ func (txt *DelimitedTextFile) populateNext() error {
 		// fmt.Printf(" -- read: %d bytes\n", n)
 
 		if err != nil {
-			// fmt.Printf(" -- !! got an error: %s\n", err)
-			txt.pos = 0
-			txt.bufLen = 0
-			return err
+			if n > 0 {
+				txt.isEOF = true
+			} else {
+				// fmt.Printf(" -- !! got an error: %s\n", err)
+				txt.pos = 0
+				txt.bufLen = 0
+				return err
+			}
 		}
 
 		txt.bufLen = n + remCount
@@ -163,9 +167,9 @@ func (txt *DelimitedTextFile) populateNext() error {
 
 // ReadLine read a line from the file
 func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
-	if txt.isEOF {
-		return nil, io.EOF
-	}
+	// if txt.isEOF {
+	// 	return nil, io.EOF
+	// }
 	if txt.rd == nil {
 		txt.open()
 	}
@@ -186,9 +190,10 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 
 		b, err = txt.nextRune()
 		if err != nil {
+			// fmt.Fprintf(os.Stderr, "err: %s, b:%s\n", err, string(b))
 			break
 		}
-		// fmt.Fprintf(os.Stderr, "%s", b)
+		// fmt.Fprintf(os.Stderr, "%s\n", b)
 		sbRaw.WriteRune(b)
 
 		if first {

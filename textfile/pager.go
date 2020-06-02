@@ -90,8 +90,10 @@ func (tv *TextPager) load() {
 	for i := 0; i < linesForEstimation; i++ {
 		line, err = tv.txt.ReadLine()
 		if err != nil {
+			// fmt.Printf("Got an err: %s, (line: %v)\n", err, line)
 			break
 		}
+		// fmt.Printf("Got an line: %v\n", line)
 
 		if line.Values == nil {
 			continue
@@ -168,6 +170,8 @@ func (tv *TextPager) load() {
 func (tv *TextPager) Show() {
 
 	tv.load()
+	// fmt.Printf("Loaded %d lines\n", tv.lines.Len())
+	// return
 
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
@@ -551,7 +555,6 @@ var headerStyle ui.Style = ui.NewStyle(ui.ColorClear, ui.ColorClear, ui.Modifier
 var markedStyle ui.Style = ui.NewStyle(ui.ColorGreen, ui.ColorClear, ui.ModifierBold|ui.ModifierReverse)
 
 func (tv *TextPager) updateTable(tbl *widgets.Table) {
-
 	var showCols []int
 	if support.BoolSum(tv.colSticky) > 0 {
 		showCols = make([]int, len(tv.colNames)+1)
