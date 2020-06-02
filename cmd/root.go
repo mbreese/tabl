@@ -11,7 +11,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:     "tabgo",
 		Short:   "Utilities for working with tab-delimited text files",
-		Version: "0.0.1",
+		Version: "0.0.2",
 	}
 )
 
