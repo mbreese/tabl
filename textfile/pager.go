@@ -197,6 +197,29 @@ func (tv *TextPager) Show() {
 	p0.SetRect(0, 0, width, 3)
 	p0.Border = true
 
+	p1 := widgets.NewParagraph()
+	p1.SetRect(0, 0, 50, 20)
+	p1.Border = true
+	p1.Text = `[tabgo                                       help](mod:reverse)
+------------------------------------------------
+q,Ctrl-C,ESC      Quit the program
+/                 Search
+m                 Mark a line
+x                 Select "sticky" columns
+
+                  To select sticky columns, use 
+                  arrow keys and hit space to 
+                  toggle on/off.
+
+[Navigation]
+h,left-arrow      Move left a column  
+l,right-arrow     Move right a column  
+j,down-arrow      Move down a row
+k,up-arrow        Move up a row  
+
+ESC to hide help text
+`
+
 	state := "view"
 	query := ""
 
@@ -204,7 +227,25 @@ func (tv *TextPager) Show() {
 
 	for e := range ui.PollEvents() {
 		// fmt.Printf("%v\n", e)
-		if state == "search" {
+		if state == "help" {
+			switch e.ID {
+			case "<Resize>":
+				payload := e.Payload.(ui.Resize)
+				tbl.SetRect(0, 0, payload.Width, payload.Height)
+				tv.visibleRows = payload.Height
+				tv.visibleCols = payload.Width
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+
+				p0.Text = " Search: " + query
+				p0.SetRect(0, 0, tv.visibleCols, 3)
+
+				ui.Render(p1)
+			case "q", "<Escape>":
+				state = "view"
+				ui.Render(tbl)
+			}
+		} else if state == "search" {
 			switch e.ID {
 			case "<C-c>", "<Escape>":
 				tb.HideCursor()
@@ -355,14 +396,14 @@ func (tv *TextPager) Show() {
 
 				tv.updateTable(tbl)
 				ui.Render(tbl)
-			case "<Right>":
+			case "l", "<Right>":
 				tv.leftCol++
 				if tv.leftCol >= len(tv.colWidth)-support.BoolSum(tv.colSticky) {
 					tv.leftCol = len(tv.colWidth) - support.BoolSum(tv.colSticky) - 1
 				}
 				tv.updateTable(tbl)
 				ui.Render(tbl)
-			case "<Left>":
+			case "h", "<Left>":
 				tv.leftCol--
 				if tv.leftCol < -support.BoolSum(tv.colSticky) {
 					tv.leftCol = -support.BoolSum(tv.colSticky)
@@ -375,6 +416,9 @@ func (tv *TextPager) Show() {
 			case "q", "<Escape>", "<C-c>":
 				// quit
 				return
+			case "?":
+				state = "help"
+				ui.Render(p1)
 			case "<Resize>":
 				payload := e.Payload.(ui.Resize)
 				tbl.SetRect(0, 0, payload.Width, payload.Height)
