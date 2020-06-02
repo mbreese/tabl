@@ -25,9 +25,11 @@ var lessCmd = &cobra.Command{
 		if len(args) != 1 {
 			return errors.New("Missing filename")
 		}
-		_, err := os.Stat(args[0])
-		if os.IsNotExist(err) {
-			return fmt.Errorf("Missing file: %s", args[0])
+		if args[0] != "-" {
+			_, err := os.Stat(args[0])
+			if os.IsNotExist(err) {
+				return fmt.Errorf("Missing file: %s", args[0])
+			}
 		}
 		return nil
 	},

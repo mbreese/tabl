@@ -5,8 +5,6 @@ import (
 	"log"
 	"strings"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 	"github.com/mbreese/tabgo/support"
@@ -176,7 +174,12 @@ func (tv *TextPager) Show() {
 	}
 	defer ui.Close()
 
-	width, height, _ := terminal.GetSize(0)
+	// width, height, err := terminal.GetSize(0)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	width, height := ui.TerminalDimensions()
 
 	tbl := widgets.NewTable()
 	tbl.TextStyle = ui.NewStyle(ui.ColorWhite)
