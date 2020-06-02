@@ -2,7 +2,6 @@ package textfile
 
 import (
 	"container/list"
-	"fmt"
 	"log"
 	"strings"
 
@@ -682,8 +681,8 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 		tv.activeRow = lastIdx
 	}
 	// if tbl.Rows[2] != nil {
-	tbl.Rows[1][0] = fmt.Sprintf("%v", showCols[:showColCount])
-	tbl.Rows[2][0] = fmt.Sprintf("%d, %d", size, tv.visibleCols)
+	// tbl.Rows[1][0] = fmt.Sprintf("%v", showCols[:showColCount])
+	// tbl.Rows[2][0] = fmt.Sprintf("%d, %d", size, tv.visibleCols)
 	// }
 
 }
