@@ -250,8 +250,10 @@ func TestReadGzip(t *testing.T) {
 
 	buf := make([]byte, 10000)
 	n, err := br.Read(buf)
-	if err != nil {
-		t.Errorf("Didn't expect EOF, but got %d bytes?", n)
+
+	if err == nil {
+		// err is expected here
+		t.Error("Didn't get an EOF from gzip")
 	}
 
 	if n != 166 {

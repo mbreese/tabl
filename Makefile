@@ -7,7 +7,9 @@ run:
 	go run main.go
 
 test:
-	go test -v -cover github.com/mbreese/tabgo/bufread
+	go test -v -cover \
+		github.com/mbreese/tabgo/bufread \
+		github.com/mbreese/tabgo/textfile
 
 clean:
 	rm bin/*
