@@ -4,7 +4,9 @@ import (
 	"compress/gzip"
 	"container/list"
 	"errors"
+	"fmt"
 	"io"
+	"os"
 	"strings"
 	"unicode/utf8"
 
@@ -251,19 +253,19 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 			l.PushBack(sb.String())
 		}
 
+		txt.curLineNum++
+
+		if err == io.EOF {
+			if l.Len() > 0 {
+				txt.isEOF = true
+				err = nil
+			} else {
+				return nil, err
+			}
+		}
+
 		if l.Len() > 0 {
 			// TODO: Add an option to return blank lines?
-			txt.curLineNum++
-
-			if err == io.EOF {
-				if l.Len() > 0 {
-					txt.isEOF = true
-					err = nil
-				} else {
-					return nil, err
-				}
-			}
-
 			if isComment {
 				return &TextRecord{
 					Values:      nil,
@@ -292,6 +294,7 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 				ByteSize:    byteSize,
 			}, err
 		}
+		fmt.Fprintf(os.Stderr, "Empty line? %d\n", l.Len())
 	}
 	// This never happens
 	return nil, nil
