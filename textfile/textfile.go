@@ -37,6 +37,7 @@ type TextRecord struct {
 	DataLineNum int
 	RawString   string
 	Flag        bool
+	ByteSize    int
 }
 
 // NewDelimitedFile returns an open delimited text file
@@ -174,113 +175,126 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 		txt.open()
 	}
 
-	var sb strings.Builder
-	var sbRaw strings.Builder
+	for true {
 
-	inQuote := false
-	first := true
-	isComment := false
+		var sb strings.Builder
+		var sbRaw strings.Builder
 
-	var err error = nil
-	var b rune = 0
+		inQuote := false
+		first := true
+		isComment := false
 
-	l := list.New()
-	// fmt.Fprintln(os.Stderr, "\n==========\n")
-	for err == nil {
+		var err error = nil
+		var b rune = 0
+		byteSize := 0
 
-		b, err = txt.nextRune()
-		if err != nil {
-			// fmt.Fprintf(os.Stderr, "err: %s, b:%s\n", err, string(b))
-			break
-		}
-		// fmt.Fprintf(os.Stderr, "%s\n", b)
-		sbRaw.WriteRune(b)
+		l := list.New()
+		// fmt.Fprintln(os.Stderr, "\n==========\n")
+		for err == nil {
 
-		if first {
-			first = false
-			if b == txt.Comment {
-				isComment = true
+			b, err = txt.nextRune()
+			if err != nil {
+				// fmt.Fprintf(os.Stderr, "err: %s, b:%s\n", err, string(b))
+				break
 			}
-		}
+			// fmt.Fprintf(os.Stderr, "%s\n", b)
+			sbRaw.WriteRune(b)
+			byteSize += utf8.RuneLen(b)
 
-		if isComment {
-			if b == '\r' {
+			if first {
+				first = false
+				if b == txt.Comment {
+					isComment = true
+				}
+			}
+
+			if isComment {
+				if b == '\r' {
+					// do nothing...
+				} else if b == '\n' {
+					break
+				} else {
+					sb.WriteRune(b)
+				}
+			} else if inQuote {
+				if b == txt.Quote {
+					// got a new quote -- if this is a double quote (""), then replace it with ("),
+					// otherwise, we should exit quote mode for the cell
+					n, err2 := txt.peekRune()
+					if err2 == nil && n == txt.Quote {
+						txt.nextRune()
+						sb.WriteRune(b)
+						sbRaw.WriteRune(n)
+						byteSize += utf8.RuneLen(n)
+					} else {
+						inQuote = false
+					}
+				} else {
+					sb.WriteRune(b)
+				}
+			} else if b == txt.Quote {
+				inQuote = true
+			} else if b == '\r' {
 				// do nothing...
 			} else if b == '\n' {
 				break
+			} else if b == txt.Delim {
+				// fmt.Printf("val: %s\n", sb.String())
+				l.PushBack(sb.String())
+				sb.Reset()
 			} else {
 				sb.WriteRune(b)
 			}
-		} else if inQuote {
-			if b == txt.Quote {
-				// got a new quote -- if this is a double quote (""), then replace it with ("),
-				// otherwise, we should exit quote mode for the cell
-				n, err2 := txt.peekRune()
-				if err2 == nil && n == txt.Quote {
-					txt.nextRune()
-					sb.WriteRune(b)
-				} else {
-					inQuote = false
-				}
-			} else {
-				sb.WriteRune(b)
-			}
-		} else if b == txt.Quote {
-			inQuote = true
-		} else if b == '\r' {
-			// do nothing...
-		} else if b == '\n' {
-			break
-		} else if b == txt.Delim {
+		}
+		if sb.Len() > 0 {
 			// fmt.Printf("val: %s\n", sb.String())
 			l.PushBack(sb.String())
-			sb.Reset()
-		} else {
-			sb.WriteRune(b)
 		}
-	}
-	if sb.Len() > 0 {
-		// fmt.Printf("val: %s\n", sb.String())
-		l.PushBack(sb.String())
-	}
 
-	txt.curLineNum++
-
-	if err == io.EOF {
 		if l.Len() > 0 {
-			txt.isEOF = true
-			err = nil
-		} else {
-			return nil, err
+			// TODO: Add an option to return blank lines?
+			txt.curLineNum++
+
+			if err == io.EOF {
+				if l.Len() > 0 {
+					txt.isEOF = true
+					err = nil
+				} else {
+					return nil, err
+				}
+			}
+
+			if isComment {
+				return &TextRecord{
+					Values:      nil,
+					LineNum:     txt.curLineNum,
+					DataLineNum: -1,
+					RawString:   sbRaw.String(),
+					Flag:        false,
+					ByteSize:    byteSize,
+				}, err
+			}
+			cols := make([]string, l.Len())
+			e := l.Front()
+			for i := 0; i < len(cols); i++ {
+				s, _ := e.Value.(string)
+				cols[i] = s
+				e = e.Next()
+			}
+
+			txt.curDataLineNum++
+			return &TextRecord{
+				Values:      cols,
+				LineNum:     txt.curLineNum,
+				DataLineNum: txt.curDataLineNum,
+				RawString:   sbRaw.String(),
+				Flag:        false,
+				ByteSize:    byteSize,
+			}, err
 		}
 	}
-
-	if isComment {
-		return &TextRecord{
-			Values:      nil,
-			LineNum:     txt.curLineNum,
-			DataLineNum: -1,
-			RawString:   sbRaw.String(),
-			Flag:        false,
-		}, err
-	}
-	cols := make([]string, l.Len())
-	e := l.Front()
-	for i := 0; i < len(cols); i++ {
-		s, _ := e.Value.(string)
-		cols[i] = s
-		e = e.Next()
-	}
-
-	txt.curDataLineNum++
-	return &TextRecord{
-		Values:      cols,
-		LineNum:     txt.curLineNum,
-		DataLineNum: txt.curDataLineNum,
-		RawString:   sbRaw.String(),
-		Flag:        false,
-	}, err
-
+	// This never happens
+	return nil, nil
 }
 
 // Close the file
