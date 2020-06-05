@@ -13,8 +13,8 @@ func init() {
 	// lessCmd.Flags().BoolVarP(&ShowLineNum, "show-linenum", "L", false, "Show line number")
 	lessCmd.Flags().BoolVar(&NoHeader, "noheader", false, "File has no header")
 	lessCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
-	lessCmd.Flags().IntVar(&MinWidth, "min-width", 0, "Minimum column width")
-	lessCmd.Flags().IntVar(&MaxWidth, "max-width", 0, "Maximum column width")
+	lessCmd.Flags().IntVar(&MinWidth, "min", 0, "Minimum column width")
+	lessCmd.Flags().IntVar(&MaxWidth, "max", 0, "Maximum column width")
 	rootCmd.AddCommand(lessCmd)
 }
 

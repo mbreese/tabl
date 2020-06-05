@@ -32,8 +32,8 @@ func init() {
 	viewCmd.Flags().BoolVarP(&ShowLineNum, "show-linenum", "L", false, "Show line number")
 	viewCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
 	viewCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
-	viewCmd.Flags().IntVar(&MinWidth, "min-width", 0, "Minimum column width")
-	viewCmd.Flags().IntVar(&MaxWidth, "max-width", 0, "Maximum column width")
+	viewCmd.Flags().IntVar(&MinWidth, "min", 0, "Minimum column width")
+	viewCmd.Flags().IntVar(&MaxWidth, "max", 0, "Maximum column width")
 	rootCmd.AddCommand(viewCmd)
 }
 
