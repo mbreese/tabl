@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -41,10 +40,7 @@ var viewCmd = &cobra.Command{
 	Use:   "view",
 	Short: "View a tab-delimited text file",
 	Args: func(cmd *cobra.Command, args []string) error {
-		if len(args) != 1 {
-			return errors.New("Missing filename")
-		}
-		if args[0] != "-" {
+		if len(args) > 0 && args[0] != "-" {
 			_, err := os.Stat(args[0])
 			if os.IsNotExist(err) {
 				return fmt.Errorf("Missing file: %s", args[0])
@@ -53,6 +49,9 @@ var viewCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			args = []string{"-"}
+		}
 		var txt *textfile.DelimitedTextFile
 		if !IsCSV {
 			txt = textfile.NewTabFile(args[0])
