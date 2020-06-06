@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"unicode/utf8"
 
@@ -174,7 +173,10 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 	// 	return nil, io.EOF
 	// }
 	if txt.rd == nil {
-		txt.open()
+		err := txt.open()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	for true {
@@ -294,7 +296,7 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 				ByteSize:    byteSize,
 			}, err
 		}
-		fmt.Fprintf(os.Stderr, "Empty line? %d\n", l.Len())
+		// fmt.Fprintf(os.Stderr, "Empty line? %d\n", l.Len())
 	}
 	// This never happens
 	return nil, nil
@@ -325,14 +327,14 @@ func (txt *DelimitedTextFile) Close() {
 // }
 
 // open the file, taking into account that the file might be gzip compressed.
-func (txt *DelimitedTextFile) open() {
+func (txt *DelimitedTextFile) open() error {
 	rd := bufread.OpenFile(txt.Filename)
 
 	magic := make([]byte, 2)
 	c, err := rd.Peek(magic)
 	if err != nil {
 		rd.Close()
-		panic(err)
+		return err
 	}
 
 	if c == 2 {
@@ -342,14 +344,16 @@ func (txt *DelimitedTextFile) open() {
 			tmp, e := gzip.NewReader(rd)
 			if e != nil {
 				rd.Close()
+				fmt.Println("Here??")
 				panic(e)
 			}
 			txt.rd = tmp
-			return
+			return nil
 		}
 	}
 
 	// this must be a very short file... or not gzipped
 	// fmt.Println("Plain!")
 	txt.rd = rd
+	return nil
 }

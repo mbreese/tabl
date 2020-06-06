@@ -111,30 +111,27 @@ func (tv *TextPager) load() {
 
 		if len(tv.colNames) < len(line.Values) {
 			newNames := make([]string, len(line.Values))
-			for j := 0; j < len(newNames); j++ {
-				newNames[j] = ""
-			}
 			copy(newNames, tv.colNames)
 			tv.colNames = newNames
 		}
 
 		if tv.colWidth == nil {
 			tv.colWidth = make([]int, len(line.Values))
-			for j := 0; j < len(tv.colWidth); j++ {
-				tv.colWidth[j] = 0
-			}
 		}
 		if len(tv.colWidth) < len(line.Values) {
 			newWidths := make([]int, len(line.Values))
-			for j := 0; j < len(newWidths); j++ {
-				newWidths[j] = 0
-			}
 			copy(newWidths, tv.colWidth)
 			tv.colWidth = newWidths
 		}
 
 		if tv.colSticky == nil {
 			tv.colSticky = make([]bool, len(line.Values))
+		}
+
+		if len(tv.colSticky) < len(line.Values) {
+			newSticky := make([]bool, len(line.Values))
+			copy(newSticky, tv.colSticky)
+			tv.colSticky = newSticky
 		}
 
 		for j := 0; j < len(line.Values); j++ {
@@ -605,7 +602,12 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 	// copy(showCols2, showCols)
 	// showCols = showCols2
 
+	if showColCount <= 0 {
+		showColCount = 1
+	}
+
 	tbl.Rows = make([][]string, tv.visibleRows-2)
+
 	tbl.RowStyles = make(map[int]ui.Style)
 
 	headerVals := make([]string, showColCount)
@@ -693,9 +695,10 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 					vals[j] = string(r[:widths[j]]) + "$"
 				}
 			} else {
+				// pad out the end if we are missing values for this row
+				// (also adds value for a completely empty input)
 				vals[j] = ""
 			}
-
 		}
 
 		t, _ := e.Value.(*TextRecord)
