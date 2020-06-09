@@ -41,7 +41,7 @@ var viewCmd = &cobra.Command{
 		} else {
 			txt = textfile.NewCSVFile(args[0])
 		}
- 
+
 		txt = txt.WithNoHeader(NoHeader).
 			WithHeaderComment(HeaderComment)
 

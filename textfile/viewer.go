@@ -16,12 +16,12 @@ type TextViewer struct {
 	txt          *DelimitedTextFile
 	showComments bool
 	showLineNum  bool
-	noHeader  bool
+	noHeader     bool
 	minWidth     int
 	maxWidth     int
 	colNames     []string
 	colWidth     []int
-	wroteHeader bool
+	wroteHeader  bool
 }
 
 // NewTextViewer - create a new text viewer
@@ -30,7 +30,7 @@ func NewTextViewer(f *DelimitedTextFile) *TextViewer {
 		txt:          f,
 		showComments: false,
 		showLineNum:  false,
-		noHeader:  false,
+		noHeader:     false,
 		minWidth:     0,
 		maxWidth:     0,
 		colNames:     nil,
@@ -196,12 +196,11 @@ func (tv *TextViewer) writeLine(out io.Writer, line *TextRecord) {
 
 	if !tv.wroteHeader {
 		if tv.showLineNum {
-			fmt.Fprintf(out, "[ ] ",)
+			fmt.Fprintf(out, "[ ] ")
 		}
 		tv.writeHeader(out)
 		tv.wroteHeader = true
 	}
-
 
 	if tv.showLineNum {
 		fmt.Fprintf(out, "[%d] ", line.DataLineNum)
