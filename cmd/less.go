@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mbreese/tabgo/textfile"
+	"github.com/mbreese/tabl/textfile"
 	"github.com/spf13/cobra"
 )
 

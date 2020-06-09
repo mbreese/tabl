@@ -1,4 +1,4 @@
-# tabgo
+# tabl
 
 ## Utilities for viewing / working with tab-delimited text files.
 

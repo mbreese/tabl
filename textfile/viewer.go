@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mbreese/tabgo/support"
+	"github.com/mbreese/tabl/support"
 )
 
 const linesForEstimation int = 10000

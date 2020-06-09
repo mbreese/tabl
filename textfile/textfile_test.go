@@ -3,7 +3,7 @@ package textfile_test
 import (
 	"testing"
 
-	"github.com/mbreese/tabgo/textfile"
+	"github.com/mbreese/tabl/textfile"
 )
 
 func TestCompare(t *testing.T) {

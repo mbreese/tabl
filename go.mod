@@ -1,4 +1,4 @@
-module github.com/mbreese/tabgo
+module github.com/mbreese/tabl
 
 go 1.14
 

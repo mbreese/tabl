@@ -7,7 +7,7 @@ import (
 
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
-	"github.com/mbreese/tabgo/support"
+	"github.com/mbreese/tabl/support"
 	tb "github.com/nsf/termbox-go"
 )
 
@@ -199,7 +199,7 @@ func (tv *TextPager) Show() {
 	p1 := widgets.NewParagraph()
 	p1.SetRect(0, 0, 50, 20)
 	p1.Border = true
-	p1.Text = `[tabgo                                       help](mod:reverse)
+	p1.Text = `[tabl                                        help](mod:reverse)
 ------------------------------------------------
 q,Ctrl-C,ESC      Quit the program
 /                 Search

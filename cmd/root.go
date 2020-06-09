@@ -9,7 +9,7 @@ import (
 
 var (
 	rootCmd = &cobra.Command{
-		Use:     "tabgo",
+		Use:     "tabl",
 		Short:   "Utilities for working with tab-delimited text files",
 		Version: "0.0.2",
 	}

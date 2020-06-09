@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/mbreese/tabgo/bufread"
+	"github.com/mbreese/tabl/bufread"
 )
 
 var defaultBufferSize int = 64 * 1024
