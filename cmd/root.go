@@ -7,6 +7,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
+
+
+// IsCSV -- the file is a CSV file
+var IsCSV bool
+
+// NoHeader -- the file has no header
+var NoHeader bool
+
+// HeaderComment -- the header is the last commented line
+var HeaderComment bool
+
+// ShowComments -- include the heading comments in the output
+var ShowComments bool
+
+// ShowLineNum -- include the line number in the output
+var ShowLineNum bool
+
+// MinWidth -- minimum column width
+var MinWidth int = 0
+
+// MaxWidth -- minimum column width
+var MaxWidth int = 0
+
+
+
 var (
 	rootCmd = &cobra.Command{
 		Use:     "tabl",

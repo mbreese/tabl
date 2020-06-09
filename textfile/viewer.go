@@ -16,10 +16,12 @@ type TextViewer struct {
 	txt          *DelimitedTextFile
 	showComments bool
 	showLineNum  bool
+	noHeader  bool
 	minWidth     int
 	maxWidth     int
 	colNames     []string
 	colWidth     []int
+	wroteHeader bool
 }
 
 // NewTextViewer - create a new text viewer
@@ -28,6 +30,7 @@ func NewTextViewer(f *DelimitedTextFile) *TextViewer {
 		txt:          f,
 		showComments: false,
 		showLineNum:  false,
+		noHeader:  false,
 		minWidth:     0,
 		maxWidth:     0,
 		colNames:     nil,
@@ -135,7 +138,7 @@ func (tv *TextViewer) WriteFile(out io.Writer) {
 	e := lines.Front()
 	for i := 0; i < lines.Len(); i++ {
 		line, _ = e.Value.(*TextRecord)
-		tv.writeLine(out, line, false)
+		tv.writeLine(out, line)
 		e = e.Next()
 	}
 
@@ -145,13 +148,44 @@ func (tv *TextViewer) WriteFile(out io.Writer) {
 		if err != nil {
 			break
 		}
-		tv.writeLine(out, line, false)
+		tv.writeLine(out, line)
 	}
 
 	tv.txt.Close()
 }
 
-func (tv *TextViewer) writeLine(out io.Writer, line *TextRecord, isHeader bool) {
+func (tv *TextViewer) writeHeader(out io.Writer) {
+	for i, v := range tv.txt.Header {
+		if i > 0 {
+			fmt.Fprint(out, "| ")
+		}
+
+		// fmt.Fprintf(os.Stderr, "[%d] %s", i, v)
+		r := []rune(v)
+		s := fmt.Sprintf("%%-%ds", tv.colWidth[i])
+		if len(r) <= tv.colWidth[i] {
+			fmt.Fprintf(out, s+" ", string(r))
+		} else {
+			fmt.Fprintf(out, s+"$", string(r[:tv.colWidth[i]]))
+		}
+		//fmtFprintf(out, line.Values[i])
+	}
+	fmt.Fprint(out, "\n")
+
+	for i := 0; i < len(tv.txt.Header); i++ {
+		if i > 0 {
+			fmt.Fprint(out, "=+=")
+		} else if tv.showLineNum {
+			fmt.Fprint(out, "====")
+		}
+		for j := 0; j < tv.colWidth[i]; j++ {
+			fmt.Fprint(out, "=")
+		}
+	}
+	fmt.Fprint(out, "=\n")
+}
+
+func (tv *TextViewer) writeLine(out io.Writer, line *TextRecord) {
 	if line.Values == nil {
 		if !tv.showComments {
 			return
@@ -159,6 +193,15 @@ func (tv *TextViewer) writeLine(out io.Writer, line *TextRecord, isHeader bool) 
 		fmt.Fprintln(out, strings.TrimSuffix(strings.TrimSuffix(line.RawString, "\n"), "\r"))
 		return
 	}
+
+	if !tv.wroteHeader {
+		if tv.showLineNum {
+			fmt.Fprintf(out, "[ ] ",)
+		}
+		tv.writeHeader(out)
+		tv.wroteHeader = true
+	}
+
 
 	if tv.showLineNum {
 		fmt.Fprintf(out, "[%d] ", line.DataLineNum)
@@ -182,17 +225,4 @@ func (tv *TextViewer) writeLine(out io.Writer, line *TextRecord, isHeader bool) 
 	}
 
 	fmt.Fprint(out, "\n")
-	if isHeader {
-		for i := 0; i < len(line.Values); i++ {
-			if i > 0 {
-				fmt.Fprint(out, "-+-")
-			} else if tv.showLineNum {
-				fmt.Fprint(out, "----")
-			}
-			for j := 0; j < tv.colWidth[i]; j++ {
-				fmt.Fprint(out, "-")
-			}
-		}
-		fmt.Fprint(out, "-\n")
-	}
 }
