@@ -42,7 +42,7 @@ func init() {
 
 var viewCmd = &cobra.Command{
 	Use:   "view",
-	Short: "View a tab-delimited text file",
+	Short: "Pretty-print of a tabular file",
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) > 0 && args[0] != "-" {
 			_, err := os.Stat(args[0])
