@@ -80,6 +80,7 @@ func (tv *TextPager) WithMaxWidth(i int) *TextPager {
 	return tv
 }
 
+// load - loads the initial set of data from the textfile, estimates the column sizes, and sets the header names
 func (tv *TextPager) load() {
 	var line *TextRecord
 	var err error = nil
@@ -163,7 +164,7 @@ func (tv *TextPager) load() {
 
 }
 
-// Show - format and write a delimited text file to a stream
+// Show - format and show the data as a table that can scroll with user-interaction
 func (tv *TextPager) Show() {
 
 	tv.load()
@@ -594,13 +595,6 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 			j++
 		}
 	}
-	// if size >= tv.visibleCols {
-	// 	showColCount--
-	// }
-
-	// showCols2 := make([]int, showColCount)
-	// copy(showCols2, showCols)
-	// showCols = showCols2
 
 	if showColCount <= 0 {
 		showColCount = 1
@@ -659,8 +653,6 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 					headerVals[k] = string(r[:tv.colWidth[i]]) + "$"
 				}
 
-				// headerVals[k] = v //[:support.MinInt(tv.colWidth[i], len(v))]
-
 				if j == tv.leftCol && tv.colSelectMode {
 					headerVals[k] = headerVals[k][0:len(headerVals[k])-3] + "<= "
 				}
@@ -703,8 +695,6 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 
 		t, _ := e.Value.(*TextRecord)
 
-		// tbl.Rows[i] = vals[:support.MinInt(tv.colWidth[i], len(vals))]
-
 		tbl.Rows[i] = vals
 		if !tv.colSelectMode && i == tv.activeRow {
 			tbl.RowStyles[i] = activeStyle
@@ -730,9 +720,5 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 		tbl.RowStyles[lastIdx] = activeStyle
 		tv.activeRow = lastIdx
 	}
-	// if tbl.Rows[2] != nil {
-	// tbl.Rows[1][0] = fmt.Sprintf("%v", showCols[:showColCount])
-	// tbl.Rows[2][0] = fmt.Sprintf("%d, %d", size, tv.visibleCols)
-	// }
 
 }
