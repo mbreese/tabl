@@ -29,6 +29,10 @@ type DelimitedTextFile struct {
 	isEOF          bool
 	curLineNum     int
 	curDataLineNum int
+	Header         []string
+	noHeader       bool
+	headerComment  bool
+	lastComment    string
 }
 
 // TextRecord is a single line/record from a delimited text file
@@ -43,46 +47,43 @@ type TextRecord struct {
 
 // NewDelimitedFile returns an open delimited text file
 func NewDelimitedFile(fname string, delim rune, quote rune, comment rune) *DelimitedTextFile {
-	return NewDelimitedFileSize(fname, delim, quote, comment, defaultBufferSize)
-}
-
-// NewDelimitedFileSize returns an open delimited text file
-func NewDelimitedFileSize(fname string, delim rune, quote rune, comment rune, bufferSize int) *DelimitedTextFile {
 	return &DelimitedTextFile{
-		Filename:       fname,
-		Delim:          delim,
-		Quote:          quote,
-		Comment:        comment,
-		rd:             nil,
-		buf:            make([]byte, bufferSize),
-		next:           0,
-		hasNext:        false,
-		pos:            0,
-		bufLen:         0,
-		isEOF:          false,
-		curLineNum:     0,
-		curDataLineNum: 0,
+		Filename: fname,
+		Delim:    delim,
+		Quote:    quote,
+		Comment:  comment,
+		rd:       nil,
+		buf:      make([]byte, defaultBufferSize),
+		Header:   nil,
 	}
 }
 
 // NewTabFile returns an open tab-delimited text file
 func NewTabFile(fname string) *DelimitedTextFile {
-	return NewTabFileSize(fname, defaultBufferSize)
-}
-
-// NewTabFileSize returns an open tab-delimited text file
-func NewTabFileSize(fname string, bufferSize int) *DelimitedTextFile {
-	return NewDelimitedFileSize(fname, '\t', 0, '#', bufferSize)
+	return NewDelimitedFile(fname, '\t', 0, '#')
 }
 
 // NewCSVFile returns an open comma-delimited text file
 func NewCSVFile(fname string) *DelimitedTextFile {
-	return NewCSVFileSize(fname, defaultBufferSize)
+	return NewDelimitedFile(fname, ',', '"', '#')
 }
 
-// NewCSVFileSize returns an open comma-delimited text file
-func NewCSVFileSize(fname string, bufferSize int) *DelimitedTextFile {
-	return NewDelimitedFileSize(fname, ',', '"', '#', bufferSize)
+// WithBufferSize - set the internal read buffer (default 64K)
+func (txt *DelimitedTextFile) WithBufferSize(bufferSize int) *DelimitedTextFile {
+	txt.buf = make([]byte, bufferSize)
+	return txt
+}
+
+// WithNoHeader - this file doesn't have a header... so fake it with col1, col2, etc...
+func (txt *DelimitedTextFile) WithNoHeader(val bool) *DelimitedTextFile {
+	txt.noHeader = val
+	return txt
+}
+
+// WithHeaderComment - The header is the last non-blank comment line
+func (txt *DelimitedTextFile) WithHeaderComment(val bool) *DelimitedTextFile {
+	txt.headerComment = val
+	return txt
 }
 
 func (txt *DelimitedTextFile) nextRune() (rune, error) {
@@ -267,8 +268,9 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 		}
 
 		if l.Len() > 0 {
-			// TODO: Add an option to return blank lines?
 			if isComment {
+				txt.lastComment = sbRaw.String()
+
 				return &TextRecord{
 					Values:      nil,
 					LineNum:     txt.curLineNum,
@@ -286,7 +288,43 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 				e = e.Next()
 			}
 
+			// This is the first non-comment, non-blank row. Must be the header
+			if txt.Header == nil {
+				if txt.noHeader {
+					txt.Header = make([]string, len(cols))
+					for i := 0; i < len(txt.Header); i++ {
+						txt.Header[i] = fmt.Sprintf("col%d", (i + 1))
+					}
+				} else if txt.headerComment && txt.lastComment != "" {
+					s2 := txt.lastComment
+					b2, l := utf8.DecodeRuneInString(s2)
+					for b2 == txt.Comment || b2 == ' ' {
+						s2 = s2[l:]
+						b2, l = utf8.DecodeRuneInString(s2)
+					}
+					txt.Header = txt.splitLine(s2)
+				} else {
+					txt.Header = cols
+					// go around for another pass...
+					continue
+				}
+			}
+
+			// If we need to add a new header column...
+			// the default here is to use a blank value for the header
+			if len(txt.Header) < len(cols) {
+				newHeader := make([]string, len(cols))
+				if txt.noHeader {
+					for i := 0; i < len(newHeader); i++ {
+						newHeader[i] = fmt.Sprintf("col%d", (i + 1))
+					}
+				}
+				copy(newHeader, txt.Header)
+				txt.Header = newHeader
+			}
+
 			txt.curDataLineNum++
+
 			return &TextRecord{
 				Values:      cols,
 				LineNum:     txt.curLineNum,
@@ -295,6 +333,7 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 				Flag:        false,
 				ByteSize:    byteSize,
 			}, err
+
 		}
 		// fmt.Fprintf(os.Stderr, "Empty line? %d\n", l.Len())
 	}
@@ -356,4 +395,69 @@ func (txt *DelimitedTextFile) open() error {
 	// fmt.Println("Plain!")
 	txt.rd = rd
 	return nil
+}
+
+// Takes a string and splits it like you'd split the input stream.
+func (txt *DelimitedTextFile) splitLine(buf string) []string {
+
+	var sb strings.Builder
+
+	inQuote := false
+
+	var length int = 0
+	var b rune = 0
+
+	l := list.New()
+	for len(buf) > 0 {
+
+		b, length = utf8.DecodeRuneInString(buf)
+
+		if b == utf8.RuneError {
+			break
+		}
+
+		buf = buf[length:]
+
+		if inQuote {
+			if b == txt.Quote {
+				// got a new quote -- if this is a double quote (""), then replace it with ("),
+				// otherwise, we should exit quote mode for the cell
+				b2, l2 := utf8.DecodeRuneInString(buf)
+				if b2 == txt.Quote {
+					buf = buf[l2:]
+					sb.WriteRune(b)
+				} else {
+					inQuote = false
+				}
+			} else {
+				sb.WriteRune(b)
+			}
+		} else if b == txt.Quote {
+			inQuote = true
+		} else if b == '\r' {
+			// do nothing...
+		} else if b == '\n' {
+			break
+		} else if b == txt.Delim {
+			// fmt.Printf("val: %s\n", sb.String())
+			l.PushBack(sb.String())
+			sb.Reset()
+		} else {
+			sb.WriteRune(b)
+		}
+	}
+	if sb.Len() > 0 {
+		// fmt.Printf("val: %s\n", sb.String())
+		l.PushBack(sb.String())
+	}
+
+	cols := make([]string, l.Len())
+	e := l.Front()
+	for i := 0; i < len(cols); i++ {
+		s, _ := e.Value.(string)
+		cols[i] = s
+		e = e.Next()
+	}
+
+	return cols
 }

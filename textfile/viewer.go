@@ -16,7 +16,6 @@ type TextViewer struct {
 	txt          *DelimitedTextFile
 	showComments bool
 	showLineNum  bool
-	hasHeader    bool
 	minWidth     int
 	maxWidth     int
 	colNames     []string
@@ -29,18 +28,11 @@ func NewTextViewer(f *DelimitedTextFile) *TextViewer {
 		txt:          f,
 		showComments: false,
 		showLineNum:  false,
-		hasHeader:    true,
 		minWidth:     0,
 		maxWidth:     0,
 		colNames:     nil,
 		colWidth:     nil,
 	}
-}
-
-// WithHasHeader - set is there is a header
-func (tv *TextViewer) WithHasHeader(b bool) *TextViewer {
-	tv.hasHeader = b
-	return tv
 }
 
 // WithShowLineNum - set showing line numbers
@@ -74,7 +66,6 @@ func (tv *TextViewer) WriteFile(out io.Writer) {
 
 	lines := list.New()
 
-	headerIdx := -1
 	// we will need to auto-determine the column widths
 
 	for i := 0; i < linesForEstimation; i++ {
@@ -89,20 +80,33 @@ func (tv *TextViewer) WriteFile(out io.Writer) {
 		}
 
 		if tv.colNames == nil {
-			if tv.hasHeader {
-				headerIdx = i
+			tv.colNames = make([]string, len(tv.txt.Header))
+			copy(tv.colNames, tv.txt.Header)
+			tv.colWidth = make([]int, len(tv.txt.Header))
+
+			for j := 0; j < len(tv.txt.Header); j++ {
+				r := []rune(tv.txt.Header[j] + "   ")
+				tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
+				if tv.maxWidth > 0 {
+					tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
+				}
 			}
-			tv.colNames = make([]string, len(line.Values))
-			copy(tv.colNames, line.Values)
 		}
 
-		if len(tv.colNames) < len(line.Values) {
-			newNames := make([]string, len(line.Values))
-			for j := 0; j < len(newNames); j++ {
-				newNames[j] = ""
+		if len(tv.colNames) < len(tv.txt.Header) {
+			tv.colNames = make([]string, len(tv.txt.Header))
+			copy(tv.colNames, tv.txt.Header)
+			newWidths := make([]int, len(tv.txt.Header))
+			copy(newWidths, tv.colWidth)
+			tv.colWidth = newWidths
+
+			for j := 0; j < len(tv.txt.Header); j++ {
+				r := []rune(tv.txt.Header[j] + "   ")
+				tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
+				if tv.maxWidth > 0 {
+					tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
+				}
 			}
-			copy(newNames, tv.colNames)
-			tv.colNames = newNames
 		}
 
 		if tv.colWidth == nil {
@@ -131,7 +135,7 @@ func (tv *TextViewer) WriteFile(out io.Writer) {
 	e := lines.Front()
 	for i := 0; i < lines.Len(); i++ {
 		line, _ = e.Value.(*TextRecord)
-		tv.writeLine(out, line, i == headerIdx)
+		tv.writeLine(out, line, false)
 		e = e.Next()
 	}
 

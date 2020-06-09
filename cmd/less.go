@@ -10,7 +10,8 @@ import (
 
 func init() {
 	// lessCmd.Flags().BoolVarP(&ShowLineNum, "show-linenum", "L", false, "Show line number")
-	lessCmd.Flags().BoolVar(&NoHeader, "noheader", false, "File has no header")
+	lessCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
+	lessCmd.Flags().BoolVar(&HeaderComment, "header-comment", false, "The header is the last commented line")
 	lessCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
 	lessCmd.Flags().IntVar(&MinWidth, "min", 0, "Minimum column width")
 	lessCmd.Flags().IntVar(&MaxWidth, "max", 0, "Maximum column width")
@@ -39,11 +40,14 @@ var lessCmd = &cobra.Command{
 		} else {
 			txt = textfile.NewCSVFile(args[0])
 		}
+
+		txt = txt.WithNoHeader(NoHeader).
+			WithHeaderComment(HeaderComment)
+
 		textfile.NewTextPager(txt).
 			WithShowLineNum(ShowLineNum).
 			WithMaxWidth(MaxWidth).
 			WithMinWidth(MinWidth).
-			WithHasHeader(!NoHeader).
 			Show()
 	},
 }

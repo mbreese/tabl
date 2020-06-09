@@ -18,7 +18,6 @@ type TextPager struct {
 	txt           *DelimitedTextFile
 	showComments  bool
 	showLineNum   bool
-	hasHeader     bool
 	minWidth      int
 	maxWidth      int
 	colNames      []string
@@ -40,7 +39,6 @@ func NewTextPager(f *DelimitedTextFile) *TextPager {
 		txt:           f,
 		showComments:  false,
 		showLineNum:   false,
-		hasHeader:     true,
 		minWidth:      0,
 		maxWidth:      0,
 		colNames:      nil,
@@ -54,12 +52,6 @@ func NewTextPager(f *DelimitedTextFile) *TextPager {
 		colSelectMode: false,
 		activeCol:     0,
 	}
-}
-
-// WithHasHeader - set is there is a header
-func (tv *TextPager) WithHasHeader(b bool) *TextPager {
-	tv.hasHeader = b
-	return tv
 }
 
 // WithShowLineNum - set showing line numbers
@@ -100,40 +92,45 @@ func (tv *TextPager) load() {
 			continue
 		}
 
+		// first, let's add the header (if missing)
 		if tv.colNames == nil {
-			// if tv.hasHeader {
-			// 	headerIdx = i
-			// }
-			tv.colNames = make([]string, len(line.Values))
-			copy(tv.colNames, line.Values)
-		} else if tv.colNames != nil || !tv.hasHeader {
-			tv.lines.PushBack(line)
+			tv.colNames = make([]string, len(tv.txt.Header))
+			copy(tv.colNames, tv.txt.Header)
+
+			tv.colWidth = make([]int, len(tv.txt.Header))
+			tv.colSticky = make([]bool, len(tv.txt.Header))
+
+			for j := 0; j < len(tv.txt.Header); j++ {
+				r := []rune(tv.txt.Header[j] + "   ")
+				tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
+				if tv.maxWidth > 0 {
+					tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
+				}
+			}
 		}
 
-		if len(tv.colNames) < len(line.Values) {
-			newNames := make([]string, len(line.Values))
-			copy(newNames, tv.colNames)
-			tv.colNames = newNames
-		}
+		if len(tv.colNames) < len(tv.txt.Header) {
+			tv.colNames = make([]string, len(tv.txt.Header))
+			copy(tv.colNames, tv.txt.Header)
 
-		if tv.colWidth == nil {
-			tv.colWidth = make([]int, len(line.Values))
-		}
-		if len(tv.colWidth) < len(line.Values) {
-			newWidths := make([]int, len(line.Values))
+			newWidths := make([]int, len(tv.txt.Header))
 			copy(newWidths, tv.colWidth)
 			tv.colWidth = newWidths
-		}
 
-		if tv.colSticky == nil {
-			tv.colSticky = make([]bool, len(line.Values))
-		}
-
-		if len(tv.colSticky) < len(line.Values) {
-			newSticky := make([]bool, len(line.Values))
+			newSticky := make([]bool, len(tv.txt.Header))
 			copy(newSticky, tv.colSticky)
 			tv.colSticky = newSticky
+
+			for j := 0; j < len(tv.txt.Header); j++ {
+				r := []rune(tv.txt.Header[j] + "   ")
+				tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
+				if tv.maxWidth > 0 {
+					tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
+				}
+			}
 		}
+
+		tv.lines.PushBack(line)
 
 		for j := 0; j < len(line.Values); j++ {
 			r := []rune(line.Values[j] + "   ")
