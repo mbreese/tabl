@@ -1,3 +1,4 @@
 bin/*
 .devcontainer/*
 .vscode/*
+.DS_Store
