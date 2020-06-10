@@ -43,6 +43,7 @@ type TextRecord struct {
 	RawString   string
 	Flag        bool
 	ByteSize    int
+	parent      *DelimitedTextFile
 }
 
 // NewDelimitedFile returns an open delimited text file
@@ -278,6 +279,7 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 					RawString:   sbRaw.String(),
 					Flag:        false,
 					ByteSize:    byteSize,
+					parent:      txt,
 				}, err
 			}
 			cols := make([]string, l.Len())
@@ -288,22 +290,34 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 				e = e.Next()
 			}
 
-			// This is the first non-comment, non-blank row. Must be the header
+			// This is the first non-comment, non-blank row. Must be the header.
+			//
+			// Note, we don't send the header as a line because we don't always know
+			// what the header *is* when we get a line. If the header is commented, then
+			// we will have already sent the commented line. We shouldn't then re-send it as
+			// a header. So, we will always pull what the "header" is internally.
+			//
 			if txt.Header == nil {
+				// fmt.Println("Need to populate header...")
 				if txt.noHeader {
+					// fmt.Println("nvm, no header for this file...")
 					txt.Header = make([]string, len(cols))
 					for i := 0; i < len(txt.Header); i++ {
 						txt.Header[i] = fmt.Sprintf("col%d", (i + 1))
 					}
-				} else if txt.headerComment && txt.lastComment != "" {
-					s2 := txt.lastComment
-					b2, l := utf8.DecodeRuneInString(s2)
-					for b2 == txt.Comment || b2 == ' ' {
-						s2 = s2[l:]
-						b2, l = utf8.DecodeRuneInString(s2)
+				} else if txt.headerComment {
+					// fmt.Printf("Last comment: %s\n", txt.lastComment)
+					if txt.lastComment != "" {
+						s2 := txt.lastComment
+						b2, l := utf8.DecodeRuneInString(s2)
+						for b2 == txt.Comment || b2 == ' ' {
+							s2 = s2[l:]
+							b2, l = utf8.DecodeRuneInString(s2)
+						}
+						txt.Header = txt.splitLine(s2)
 					}
-					txt.Header = txt.splitLine(s2)
 				} else {
+					// fmt.Printf("cols used for header: %v\n", cols)
 					txt.Header = cols
 					// go around for another pass...
 					continue
@@ -332,6 +346,7 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 				RawString:   sbRaw.String(),
 				Flag:        false,
 				ByteSize:    byteSize,
+				parent:      txt,
 			}, err
 
 		}
