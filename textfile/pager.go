@@ -203,7 +203,7 @@ func (tv *TextPager) Show() {
 ------------------------------------------------
 q,Ctrl-C,ESC      Quit the program
 /                 Search
-m                 Mark a line
+m,Enter           Mark a line
 x                 Select "sticky" columns
 
                   To select sticky columns, use 
@@ -357,7 +357,10 @@ ESC to hide help text
 				tv.updateTable(tbl)
 				p0.SetRect(0, 0, tv.visibleCols, 3)
 				ui.Render(tbl)
-			case "x", "<Space>":
+			case "s":
+				// TODO: Save selected rows
+
+			case "x", "<Space>", "<Enter>":
 				j := -support.BoolSum(tv.colSticky)
 				found := false
 				for i, v := range tv.colSticky {
@@ -448,7 +451,7 @@ ESC to hide help text
 				tv.topRow = e
 				tv.updateTable(tbl)
 				ui.Render(tbl)
-			case "m":
+			case "m", "<Enter>":
 				// mark row
 				e := tv.topRow
 				for i := 0; e.Next() != nil && i < tv.activeRow-1; i++ {
