@@ -197,7 +197,7 @@ func (tv *TextPager) Show() {
 	p0.Border = true
 
 	p1 := widgets.NewParagraph()
-	p1.SetRect(0, 0, 50, 20)
+	p1.SetRect(0, 0, 50, 21)
 	p1.Border = true
 	p1.Text = `[tabl                                        help](mod:reverse)
 ------------------------------------------------
@@ -205,16 +205,17 @@ q,Ctrl-C,ESC      Quit the program
 /                 Search
 m,Enter           Mark a line
 x                 Select "sticky" columns
-
                   To select sticky columns, use 
                   arrow keys and hit space to 
                   toggle on/off.
 
 [Navigation]
 h,left-arrow      Move left a column  
-l,right-arrow     Move right a column  
 j,down-arrow      Move down a row
 k,up-arrow        Move up a row  
+l,right-arrow     Move right a column  
+space             Move down a page
+b                 Move up a page
 
 ESC to hide help text
 `
@@ -240,7 +241,7 @@ ESC to hide help text
 				p0.SetRect(0, 0, tv.visibleCols, 3)
 
 				ui.Render(p1)
-			case "q", "<Escape>":
+			case "q", "<Escape>", "<Space>":
 				state = "view"
 				ui.Render(tbl)
 			}
