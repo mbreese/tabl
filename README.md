@@ -8,4 +8,4 @@ For more information, see here: [https://compgen.io/tabl](https://compgen.io/tab
 
 ## Examples
 
-![Demo](https://compgen.io/tabl/assets/img/tabl-demo-2.gif)
+![Demo](https://github.com/compgen-io/tabl-docs/raw/master/assets/img/tabl-demo-2.gif)
