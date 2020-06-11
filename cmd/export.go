@@ -18,9 +18,7 @@ func init() {
 	exportCmd.Flags().BoolVar(&HeaderComment, "header-comment", false, "The header is the last commented line")
 	exportCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
 	// exportCmd.Flags().StringVar(&ExportCols, "cols", "", "Columns to export (comma separated, names or indexes, requried)")
-	rootCmd.MarkFlagRequired("cols")
 
-	exportCmd.Flags()
 	rootCmd.AddCommand(exportCmd)
 }
 
