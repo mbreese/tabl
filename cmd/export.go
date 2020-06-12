@@ -12,12 +12,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var ExportCols []string
+
 func init() {
 	exportCmd.Flags().BoolVarP(&ShowComments, "show-comments", "H", false, "Show comments")
 	exportCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
 	exportCmd.Flags().BoolVar(&HeaderComment, "header-comment", false, "The header is the last commented line")
 	exportCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
-	// exportCmd.Flags().StringVar(&ExportCols, "cols", "", "Columns to export (comma separated, names or indexes, requried)")
+	exportCmd.Flags().StringArrayVarP(&ExportCols, "key", "k", nil, "Columns to export (comma separated, names or indexes, requried)")
 
 	rootCmd.AddCommand(exportCmd)
 }
@@ -25,10 +27,15 @@ func init() {
 var exportCmd = &cobra.Command{
 	Use:   "export [cols] [file]",
 	Short: "Extract columns from a tabular file",
+	Long:  "this is the long val\n it is multi line?\nyes?!?!",
 	Args: func(cmd *cobra.Command, args []string) error {
 
 		if len(args) == 0 {
 			return fmt.Errorf("Missing [cols] and [file]")
+		}
+
+		if args[0] == "-" {
+			return fmt.Errorf("Missing [cols]")
 		}
 
 		if len(args) > 1 && args[1] != "-" {
@@ -64,7 +71,8 @@ var exportCmd = &cobra.Command{
 			WriteFile(os.Stdout)
 
 		if err != nil {
-			panic(err)
+			fmt.Fprintln(os.Stderr, err)
+			// panic(err)
 		}
 	},
 }
@@ -77,6 +85,10 @@ var exportCmd = &cobra.Command{
 //
 // Named columns won't be converted to their index values until needed. Column numbers should be 1-based for input, but
 // will be 0-based for the TextColumn index.
+//
+// This is *not* a simple CSV parser because we need to differentiate between 1 and "1". The former is the first column,
+// the later is the column with the header value of "1". They aren't necessarily the same thing.
+//
 func ParseColumnList(buf string) ([]*textfile.TextColumn, error) {
 	var sb strings.Builder
 	colList := list.New()
@@ -84,6 +96,7 @@ func ParseColumnList(buf string) ([]*textfile.TextColumn, error) {
 	inQuote := false
 	singleQuote := false
 	isNumber := true
+	numDash := 0
 
 	for len(buf) > 0 {
 		r, l := utf8.DecodeRuneInString(buf)
@@ -109,11 +122,25 @@ func ParseColumnList(buf string) ([]*textfile.TextColumn, error) {
 			isNumber = false
 			singleQuote = true
 		} else if r == ',' {
-			colList.PushBack(sb.String())
+			s := sb.String()
+			if r, _ := utf8.DecodeRuneInString(s); r == '-' {
+				isNumber = false
+			}
+			if r, _ := utf8.DecodeLastRuneInString(s); r == '-' {
+				isNumber = false
+			}
+			colList.PushBack(s)
 			colNum.PushBack(isNumber)
 			sb.Reset()
 			isNumber = true
 		} else {
+			if r == '-' {
+				numDash++
+				if numDash > 1 {
+					isNumber = false
+				}
+			}
+
 			if strings.IndexRune("0123456789-", r) == -1 {
 				isNumber = false
 			}
@@ -122,7 +149,14 @@ func ParseColumnList(buf string) ([]*textfile.TextColumn, error) {
 		buf = buf[l:]
 	}
 	if sb.Len() > 0 {
-		colList.PushBack(sb.String())
+		s := sb.String()
+		if r, _ := utf8.DecodeRuneInString(s); r == '-' {
+			isNumber = false
+		}
+		if r, _ := utf8.DecodeLastRuneInString(s); r == '-' {
+			isNumber = false
+		}
+		colList.PushBack(s)
 		colNum.PushBack(isNumber)
 	}
 
