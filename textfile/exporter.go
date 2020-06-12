@@ -3,7 +3,6 @@ package textfile
 import (
 	"fmt"
 	"io"
-	"strings"
 )
 
 // TextExporter is used to export specific columns from a tab delimited file
@@ -43,7 +42,7 @@ func (tex *TextExporter) WriteFile(out io.Writer) error {
 		if line.Values == nil {
 			// comment
 			if tex.showComments {
-				fmt.Fprintln(out, strings.TrimSuffix(strings.TrimSuffix(line.RawString, "\n"), "\r"))
+				fmt.Fprint(out, line.RawString)
 			}
 			continue
 		}
