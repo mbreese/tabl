@@ -36,6 +36,7 @@ type DelimitedTextFile struct {
 	noHeader       bool
 	headerComment  bool
 	lastComment    string
+	rawHeaderLine  string
 }
 
 // TextRecord is a single line/record from a delimited text file
@@ -334,6 +335,7 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 				} else {
 					// fmt.Printf("cols used for header: %v\n", cols)
 					txt.Header = cols
+					txt.rawHeaderLine = sbRaw.String()
 					// go around for another pass...
 					continue
 				}

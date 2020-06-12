@@ -7,7 +7,6 @@ import (
 	"os"
 	"sort"
 	"strconv"
-	"strings"
 )
 
 var defaultSortBufferLen int = 10000
@@ -177,24 +176,9 @@ func (tes *TextSorter) populateColIndex() error {
 }
 
 func (tes *TextSorter) writeHeader(out io.Writer) {
-	for i, v := range tes.txt.Header {
-		if i > 0 {
-			fmt.Fprint(out, string(tes.txt.Delim))
-		}
-		if tes.txt.Quote != 0 {
-			fmt.Fprint(out, string(tes.txt.Quote))
-			fmt.Fprint(out, strings.ReplaceAll(v, "\"", "\"\""))
-			fmt.Fprint(out, string(tes.txt.Quote))
-		} else {
-			fmt.Fprint(out, v)
-		}
+	if tes.txt.rawHeaderLine != "" {
+		fmt.Fprint(out, tes.txt.rawHeaderLine)
 	}
-
-	if tes.txt.IsCrLf {
-		fmt.Fprint(out, "\r")
-	}
-
-	fmt.Fprint(out, "\n")
 }
 
 func (tes *TextSorter) writeLine(out io.Writer, line *TextRecord) {

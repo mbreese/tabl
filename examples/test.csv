@@ -1,4 +1,4 @@
-header one,header two,header thee,"final header"
+header one,header two,header thee,"final,header"
 foo,bar,baz
 foo,bar,baz2
 "foo""bar""",baz,quux

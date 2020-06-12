@@ -105,11 +105,9 @@ func (tex *TextExporter) writeHeader(out io.Writer) error {
 		}
 		if col.idx < len(tex.txt.Header) {
 			if tex.txt.Quote != 0 {
-				fmt.Fprint(out, string(tex.txt.Quote))
-				fmt.Fprint(out, strings.ReplaceAll(tex.txt.Header[col.idx], "\"", "\"\""))
-				fmt.Fprint(out, string(tex.txt.Quote))
+				fmt.Fprint(out, tex.csvQuoteString(tex.txt.Header[col.idx]))
 			} else {
-				fmt.Fprint(out, strings.ReplaceAll(tex.txt.Header[col.idx], "\"", "\"\""))
+				fmt.Fprint(out, tex.txt.Header[col.idx])
 			}
 		}
 	}
@@ -135,11 +133,9 @@ func (tex *TextExporter) writeLine(out io.Writer, line *TextRecord) error {
 		}
 		if col.idx < len(line.Values) {
 			if tex.txt.Quote != 0 {
-				fmt.Fprint(out, string(tex.txt.Quote))
-				fmt.Fprint(out, strings.ReplaceAll(line.Values[col.idx], "\"", "\"\""))
-				fmt.Fprint(out, string(tex.txt.Quote))
+				fmt.Fprint(out, tex.csvQuoteString(line.Values[col.idx]))
 			} else {
-				fmt.Fprint(out, strings.ReplaceAll(line.Values[col.idx], "\"", "\"\""))
+				fmt.Fprint(out, line.Values[col.idx])
 			}
 		}
 
@@ -150,4 +146,26 @@ func (tex *TextExporter) writeLine(out io.Writer, line *TextRecord) error {
 	fmt.Fprint(out, "\n")
 
 	return nil
+}
+
+func (tex *TextExporter) csvQuoteString(inp string) string {
+	quote := false
+	if strings.Index(inp, "\r") != -1 {
+		quote = true
+	}
+	if strings.Index(inp, "\n") != -1 {
+		quote = true
+	}
+	if tex.txt.Quote != 0 && strings.Index(inp, string(tex.txt.Quote)) != -1 {
+		quote = true
+	}
+	if strings.Index(inp, string(tex.txt.Delim)) != -1 {
+		quote = true
+	}
+
+	if quote {
+		dblq := []rune{tex.txt.Quote, tex.txt.Quote}
+		return string(tex.txt.Quote) + strings.ReplaceAll(inp, string(tex.txt.Quote), string(dblq)) + string(tex.txt.Quote)
+	}
+	return inp
 }
