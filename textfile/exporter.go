@@ -90,13 +90,25 @@ func (tex *TextExporter) populateColIndex() error {
 func (tex *TextExporter) writeHeader(out io.Writer) error {
 	for i, col := range tex.cols {
 		if i > 0 {
-			fmt.Fprint(out, "\t")
+			fmt.Fprint(out, tex.txt.Delim)
 		}
 		if col.idx >= len(tex.txt.Header) {
+			if tex.txt.IsCrLf {
+				fmt.Fprint(out, "\r")
+			}
 			fmt.Fprint(out, "\n")
 			return fmt.Errorf("Column index out of bounds: %d", col.idx+1)
 		}
+		if tex.txt.Quote != 0 {
+			fmt.Fprint(out, tex.txt.Quote)
+		}
 		fmt.Fprint(out, tex.txt.Header[col.idx])
+		if tex.txt.Quote != 0 {
+			fmt.Fprint(out, tex.txt.Quote)
+		}
+	}
+	if tex.txt.IsCrLf {
+		fmt.Fprint(out, "\r")
 	}
 	fmt.Fprint(out, "\n")
 
@@ -106,14 +118,27 @@ func (tex *TextExporter) writeHeader(out io.Writer) error {
 func (tex *TextExporter) writeLine(out io.Writer, line *TextRecord) error {
 	for i, col := range tex.cols {
 		if i > 0 {
-			fmt.Fprint(out, "\t")
+			fmt.Fprint(out, tex.txt.Delim)
 		}
 		if col.idx >= len(tex.txt.Header) {
+			if tex.txt.IsCrLf {
+				fmt.Fprint(out, "\r")
+			}
 			fmt.Fprint(out, "\n")
 			return fmt.Errorf("Column index out of bounds: %d", col.idx+1)
 		}
+		if tex.txt.Quote != 0 {
+			fmt.Fprint(out, tex.txt.Quote)
+		}
 		fmt.Fprint(out, line.Values[col.idx])
+		if tex.txt.Quote != 0 {
+			fmt.Fprint(out, tex.txt.Quote)
+		}
+	}
+	if tex.txt.IsCrLf {
+		fmt.Fprint(out, "\r")
 	}
 	fmt.Fprint(out, "\n")
+
 	return nil
 }
