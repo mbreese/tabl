@@ -12,14 +12,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ExportCols []string
+// var ExportCols []string
 
 func init() {
 	exportCmd.Flags().BoolVarP(&ShowComments, "show-comments", "H", false, "Show comments")
 	exportCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
 	exportCmd.Flags().BoolVar(&HeaderComment, "header-comment", false, "The header is the last commented line")
 	exportCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
-	exportCmd.Flags().StringArrayVarP(&ExportCols, "key", "k", nil, "Columns to export (comma separated, names or indexes, requried)")
+	// exportCmd.Flags().StringArrayVarP(&ExportCols, "key", "k", nil, "Columns to export (comma separated, names or indexes, requried)")
 
 	rootCmd.AddCommand(exportCmd)
 }
@@ -32,6 +32,12 @@ var exportCmd = &cobra.Command{
 This function will let you extract specific columns or reorder columns from 
 a delimited text file. The columns can be specified using either their column
 number (starting at 1), or by their name (if there is a header).
+
+Example column values:
+  1,2,4,5
+  1,"gene name",description
+  3-5,7
+
 `,
 	Args: func(cmd *cobra.Command, args []string) error {
 
