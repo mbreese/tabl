@@ -27,7 +27,12 @@ func init() {
 var exportCmd = &cobra.Command{
 	Use:   "export [cols] [file]",
 	Short: "Extract columns from a tabular file",
-	Long:  "this is the long val\n it is multi line?\nyes?!?!",
+	Long: `Extract columns from a tabular file.
+
+This function will let you extract specific columns or reorder columns from 
+a delimited text file. The columns can be specified using either their column
+number (starting at 1), or by their name (if there is a header).
+`,
 	Args: func(cmd *cobra.Command, args []string) error {
 
 		if len(args) == 0 {
