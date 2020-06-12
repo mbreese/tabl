@@ -1,7 +1,7 @@
 # comment
 col1	col2	col3
-foo1	bar1	baz1😀
-foo2	bar2	baz2	quux
+foo1	bar1	baz1😀	quux1
+foo2	bar2	baz2	quux2
 foo3	bar3	baz3
 foo4	bar4	baz4
 foo567890123456789	bar567890123456789	baz567890123456789

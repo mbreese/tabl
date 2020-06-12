@@ -16,10 +16,13 @@ var defaultBufferSize int = 64 * 1024
 
 // DelimitedTextFile is the main delimited text file handler
 type DelimitedTextFile struct {
-	Filename       string
-	Delim          rune
-	Quote          rune
-	Comment        rune
+	Filename string
+	Delim    rune
+	Quote    rune
+	Comment  rune
+	IsCrLf   bool
+
+	// This is the underlying reader
 	rd             io.ReadCloser
 	buf            []byte
 	pos            int
@@ -47,26 +50,38 @@ type TextRecord struct {
 }
 
 // NewDelimitedFile returns an open delimited text file
-func NewDelimitedFile(fname string, delim rune, quote rune, comment rune) *DelimitedTextFile {
+func NewDelimitedFile(fname string, delim rune, quote rune, comment rune, isCrLf bool) *DelimitedTextFile {
 	return &DelimitedTextFile{
 		Filename: fname,
 		Delim:    delim,
 		Quote:    quote,
 		Comment:  comment,
-		rd:       nil,
 		buf:      make([]byte, defaultBufferSize),
-		Header:   nil,
+		IsCrLf:   isCrLf,
 	}
 }
 
 // NewTabFile returns an open tab-delimited text file
 func NewTabFile(fname string) *DelimitedTextFile {
-	return NewDelimitedFile(fname, '\t', 0, '#')
+	return NewDelimitedFile(fname, '\t', 0, '#', false)
 }
 
 // NewCSVFile returns an open comma-delimited text file
 func NewCSVFile(fname string) *DelimitedTextFile {
-	return NewDelimitedFile(fname, ',', '"', '#')
+	return NewDelimitedFile(fname, ',', '"', '#', true)
+}
+
+// Clone returns a new DelimitedTextReader just like txt, but with a new filename
+func (txt *DelimitedTextFile) Clone(fname string) *DelimitedTextFile {
+	return &DelimitedTextFile{
+		Filename: fname,
+		Delim:    txt.Delim,
+		Quote:    txt.Quote,
+		Comment:  txt.Comment,
+		rd:       nil,
+		buf:      make([]byte, defaultBufferSize),
+		Header:   nil,
+	}
 }
 
 // WithBufferSize - set the internal read buffer (default 64K)

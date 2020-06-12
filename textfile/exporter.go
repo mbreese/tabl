@@ -3,6 +3,7 @@ package textfile
 import (
 	"fmt"
 	"io"
+	"strings"
 )
 
 // TextExporter is used to export specific columns from a tab delimited file
@@ -88,9 +89,12 @@ func (tex *TextExporter) populateColIndex() error {
 	return nil
 }
 func (tex *TextExporter) writeHeader(out io.Writer) error {
+	if tex.txt.noHeader {
+		return nil
+	}
 	for i, col := range tex.cols {
 		if i > 0 {
-			fmt.Fprint(out, tex.txt.Delim)
+			fmt.Fprint(out, string(tex.txt.Delim))
 		}
 		if col.idx >= len(tex.txt.Header) {
 			if tex.txt.IsCrLf {
@@ -99,12 +103,14 @@ func (tex *TextExporter) writeHeader(out io.Writer) error {
 			fmt.Fprint(out, "\n")
 			return fmt.Errorf("Column index out of bounds: %d", col.idx+1)
 		}
-		if tex.txt.Quote != 0 {
-			fmt.Fprint(out, tex.txt.Quote)
-		}
-		fmt.Fprint(out, tex.txt.Header[col.idx])
-		if tex.txt.Quote != 0 {
-			fmt.Fprint(out, tex.txt.Quote)
+		if col.idx < len(tex.txt.Header) {
+			if tex.txt.Quote != 0 {
+				fmt.Fprint(out, string(tex.txt.Quote))
+				fmt.Fprint(out, strings.ReplaceAll(tex.txt.Header[col.idx], "\"", "\"\""))
+				fmt.Fprint(out, string(tex.txt.Quote))
+			} else {
+				fmt.Fprint(out, strings.ReplaceAll(tex.txt.Header[col.idx], "\"", "\"\""))
+			}
 		}
 	}
 	if tex.txt.IsCrLf {
@@ -118,7 +124,7 @@ func (tex *TextExporter) writeHeader(out io.Writer) error {
 func (tex *TextExporter) writeLine(out io.Writer, line *TextRecord) error {
 	for i, col := range tex.cols {
 		if i > 0 {
-			fmt.Fprint(out, tex.txt.Delim)
+			fmt.Fprint(out, string(tex.txt.Delim))
 		}
 		if col.idx >= len(tex.txt.Header) {
 			if tex.txt.IsCrLf {
@@ -127,13 +133,16 @@ func (tex *TextExporter) writeLine(out io.Writer, line *TextRecord) error {
 			fmt.Fprint(out, "\n")
 			return fmt.Errorf("Column index out of bounds: %d", col.idx+1)
 		}
-		if tex.txt.Quote != 0 {
-			fmt.Fprint(out, tex.txt.Quote)
+		if col.idx < len(line.Values) {
+			if tex.txt.Quote != 0 {
+				fmt.Fprint(out, string(tex.txt.Quote))
+				fmt.Fprint(out, strings.ReplaceAll(line.Values[col.idx], "\"", "\"\""))
+				fmt.Fprint(out, string(tex.txt.Quote))
+			} else {
+				fmt.Fprint(out, strings.ReplaceAll(line.Values[col.idx], "\"", "\"\""))
+			}
 		}
-		fmt.Fprint(out, line.Values[col.idx])
-		if tex.txt.Quote != 0 {
-			fmt.Fprint(out, tex.txt.Quote)
-		}
+
 	}
 	if tex.txt.IsCrLf {
 		fmt.Fprint(out, "\r")

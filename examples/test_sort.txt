@@ -1,0 +1,7 @@
+#comment
+col1	col2	col3
+1	4	def
+3	3	abc
+3	2	xyz
+18	2	lmn
+4	1	qrs
