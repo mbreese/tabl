@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -27,6 +28,10 @@ var sortCmd = &cobra.Command{
 	Use:   "sort [file]",
 	Short: "Sort a file by columns",
 	Args: func(cmd *cobra.Command, args []string) error {
+		if len(sortCols.Values) == 0 {
+			// TODO: make the default sort by all columns in text mode
+			return errors.New("Missing value for --key (at least one column to sort by is required)")
+		}
 		if len(args) > 0 && args[0] != "-" {
 			_, err := os.Stat(args[0])
 			if os.IsNotExist(err) {

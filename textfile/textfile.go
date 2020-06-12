@@ -374,7 +374,9 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 // Close the file
 func (txt *DelimitedTextFile) Close() {
 	txt.buf = nil
-	txt.rd.Close()
+	if txt.rd != nil {
+		txt.rd.Close()
+	}
 }
 
 // func (txt *DelimitedTextFile) fillBuffer(offset int) error {

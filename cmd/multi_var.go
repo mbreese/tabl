@@ -61,5 +61,5 @@ func (mv *MultiColumnVar) Set(s string) error {
 
 // Type *pflag.Value interface
 func (mv *MultiColumnVar) Type() string {
-	return "MultiColumnVar"
+	return "cols"
 }
