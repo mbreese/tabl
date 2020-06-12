@@ -83,9 +83,6 @@ func (tex *CSVExporter) writeHeader(out io.Writer) error {
 }
 
 func (tex *CSVExporter) writeLine(out io.Writer, line *TextRecord) error {
-	if tex.txt.noHeader {
-		return nil
-	}
 	for i, v := range line.Values {
 		if i > 0 {
 			fmt.Fprint(out, "\t")

@@ -10,8 +10,6 @@ import (
 
 func init() {
 	csv2TabCmd.Flags().BoolVarP(&ShowComments, "show-comments", "H", false, "Show comments")
-	csv2TabCmd.Flags().BoolVar(&HeaderComment, "header-comment", false, "The header is the last commented line")
-	csv2TabCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
 	rootCmd.AddCommand(csv2TabCmd)
 }
 
@@ -32,8 +30,7 @@ var csv2TabCmd = &cobra.Command{
 			args = []string{"-"}
 		}
 		txt := textfile.NewCSVFile(args[0]).
-			WithNoHeader(NoHeader).
-			WithHeaderComment(HeaderComment)
+			WithNoHeader(true)
 
 		textfile.NewCSVExporter(txt).
 			WithShowComments(ShowComments).
