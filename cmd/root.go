@@ -7,8 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-
 // IsCSV -- the file is a CSV file
 var IsCSV bool
 
@@ -30,13 +28,11 @@ var MinWidth int = 0
 // MaxWidth -- minimum column width
 var MaxWidth int = 0
 
-
-
 var (
 	rootCmd = &cobra.Command{
 		Use:     "tabl",
 		Short:   "Utilities for working with tab-delimited text files",
-		Version: "0.1.0",
+		Version: "0.1.1",
 	}
 )
 
