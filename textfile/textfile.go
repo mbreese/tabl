@@ -286,7 +286,9 @@ func (txt *DelimitedTextFile) ReadLine() (*TextRecord, error) {
 
 		if l.Len() > 0 {
 			if isComment {
-				txt.lastComment = sbRaw.String()
+				if txt.Header == nil {
+					txt.lastComment = sbRaw.String()
+				}
 
 				return &TextRecord{
 					Values:      nil,

@@ -905,25 +905,17 @@ func (tv *TextPager) saveToFile(fname string) error {
 		return err
 	}
 
-	for i, v := range tv.txt.Header {
-		if i > 0 {
-			f.WriteString("\t")
-		}
-		f.WriteString(v)
+	if tv.txt.headerComment {
+		f.WriteString(tv.txt.lastComment)
+	} else if tv.txt.rawHeaderLine != "" {
+		f.WriteString(tv.txt.rawHeaderLine)
 	}
-	f.WriteString("\n")
 
 	e := tv.topRow
 	for i := 0; e.Next() != nil; i++ {
 		t, _ := e.Value.(*TextRecord)
 		if t.Flag {
-			for i, v := range t.Values {
-				if i > 0 {
-					f.WriteString("\t")
-				}
-				f.WriteString(v)
-			}
-			f.WriteString("\n")
+			f.WriteString(t.RawString)
 		}
 
 		e = e.Next()
