@@ -3,6 +3,7 @@ package textfile
 import (
 	"container/list"
 	"log"
+	"os"
 	"strings"
 
 	ui "github.com/gizak/termui/v3"
@@ -197,13 +198,16 @@ func (tv *TextPager) Show() {
 	p0.Border = true
 
 	p1 := widgets.NewParagraph()
-	p1.SetRect(0, 0, 50, 21)
+	p1.SetRect(0, 0, 50, 24)
 	p1.Border = true
 	p1.Text = `[tabl                                        help](mod:reverse)
 ------------------------------------------------
 q,Ctrl-C,ESC      Quit the program
 /                 Search
 m,Enter           Mark a line
+c                 Clear marked lines
+s                 Save all marked lines to 
+                  a file
 x                 Select "sticky" columns
                   To select sticky columns, use 
                   arrow keys and hit space to 
@@ -222,6 +226,8 @@ ESC to hide help text
 
 	state := "view"
 	query := ""
+	savePath := ""
+	saveError := ""
 
 	lastMatchCol := 0
 
@@ -338,6 +344,125 @@ ESC to hide help text
 					ui.Render(p0)
 				}
 			}
+		} else if state == "save" {
+			switch e.ID {
+			case "<C-c>", "<Escape>":
+				tb.HideCursor()
+				state = "view"
+				query = ""
+				ui.Render(tbl)
+			case "<Backspace>":
+				if len(savePath) > 0 {
+					savePath = savePath[:len(savePath)-1]
+				}
+				p0.Text = " Save marked rows to file: " + savePath
+				tb.SetCursor(len(p0.Text)+1, 1)
+				ui.Render(p0)
+			case "<Enter>":
+				_, err := os.Stat(savePath)
+				if os.IsNotExist(err) {
+					// save the file, it doesn't exist
+
+					err := tv.saveToFile(savePath)
+
+					if err != nil {
+						saveError = err.Error()
+						state = "save_error"
+						p0.Text = " Error: " + saveError
+						p0.SetRect(0, 0, tv.visibleCols, 3)
+						tb.HideCursor()
+						ui.Render(p0)
+					} else {
+						tb.HideCursor()
+						state = "view"
+						tv.updateTable(tbl)
+						ui.Render(tbl)
+					}
+				} else {
+					// file exists, so let's prompt to overwrite
+					state = "overwrite"
+					p0.Text = " Overwrite exising file (Y/N): "
+					p0.SetRect(0, 0, tv.visibleCols, 3)
+					tb.SetCursor(len(p0.Text)+1, 1)
+					ui.Render(p0)
+				}
+
+			case "<Resize>":
+				payload := e.Payload.(ui.Resize)
+				tbl.SetRect(0, 0, payload.Width, payload.Height)
+				tv.visibleRows = payload.Height
+				tv.visibleCols = payload.Width
+
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+
+				p0.Text = " Save marked rows to file: " + savePath
+				p0.SetRect(0, 0, tv.visibleCols, 3)
+				tb.SetCursor(len(p0.Text)+1, 1)
+				ui.Render(p0)
+			default:
+				if e.ID == "<Space>" || (e.ID[0:1] != "<" && e.ID[len(e.ID)-1:] != ">") {
+					if e.ID == "<Space>" {
+						savePath += " "
+					} else {
+						savePath += e.ID
+					}
+					p0.Text = " Save marked rows to file: " + savePath
+					tb.SetCursor(len(p0.Text)+1, 1)
+					ui.Render(p0)
+				}
+			}
+		} else if state == "save_error" {
+			switch e.ID {
+			case "<Resize>":
+				payload := e.Payload.(ui.Resize)
+				tbl.SetRect(0, 0, payload.Width, payload.Height)
+				tv.visibleRows = payload.Height
+				tv.visibleCols = payload.Width
+
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+
+				p0.SetRect(0, 0, tv.visibleCols, 3)
+				tb.HideCursor()
+				ui.Render(p0)
+			default:
+				// exit modal
+				state = "view"
+				savePath = ""
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+			}
+		} else if state == "overwrite" {
+			switch e.ID {
+			case "<C-c>", "<Escape>", "N", "n":
+				tb.HideCursor()
+				state = "view"
+				savePath = ""
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+			case "Y", "y":
+				tv.saveToFile(savePath)
+				tb.HideCursor()
+				state = "view"
+				savePath = ""
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+
+			case "<Resize>":
+				payload := e.Payload.(ui.Resize)
+				tbl.SetRect(0, 0, payload.Width, payload.Height)
+				tv.visibleRows = payload.Height
+				tv.visibleCols = payload.Width
+
+				tv.updateTable(tbl)
+				ui.Render(tbl)
+
+				p0.Text = " Overwrite exising file (Y/N): "
+				p0.SetRect(0, 0, tv.visibleCols, 3)
+				tb.SetCursor(len(p0.Text)+1, 1)
+				ui.Render(p0)
+			}
 		} else if state == "select" {
 			switch e.ID {
 			case "q", "<Escape>":
@@ -358,9 +483,6 @@ ESC to hide help text
 				tv.updateTable(tbl)
 				p0.SetRect(0, 0, tv.visibleCols, 3)
 				ui.Render(tbl)
-			case "s":
-				// TODO: Save selected rows
-
 			case "x", "<Space>", "<Enter>":
 				j := -support.BoolSum(tv.colSticky)
 				found := false
@@ -452,6 +574,10 @@ ESC to hide help text
 				tv.topRow = e
 				tv.updateTable(tbl)
 				ui.Render(tbl)
+			case "c":
+				tv.clearMarked()
+				tv.updateTable(tbl)
+				ui.Render(tbl)
 			case "m", "<Enter>":
 				// mark row
 				e := tv.topRow
@@ -461,8 +587,27 @@ ESC to hide help text
 
 				t, _ := e.Value.(*TextRecord)
 				t.Flag = !t.Flag
+
+				tv.activeRow++
+
+				maxActiveRow := 0
+
+				for last := tv.topRow; last.Next() != nil && maxActiveRow < tv.visibleRows-3; last = last.Next() {
+					maxActiveRow++
+				}
+
+				if tv.activeRow > maxActiveRow {
+					tv.activeRow = maxActiveRow
+					if tv.topRow.Next() != nil {
+						tv.topRow = tv.topRow.Next()
+					}
+				}
+
 				tv.updateTable(tbl)
 				ui.Render(tbl)
+				for tv.lines.Len() > maxLines {
+					tv.lines.Remove(tv.lines.Front())
+				}
 
 			case "b":
 				// back a page
@@ -536,6 +681,25 @@ ESC to hide help text
 
 				tv.updateTable(tbl)
 				ui.Render(tbl)
+			case "s":
+				count := 0
+				for e := tv.topRow; e != nil; e = e.Next() {
+					t, _ := e.Value.(*TextRecord)
+					if t.Flag {
+						count++
+					}
+				}
+				if count == 0 {
+					p0.Text = " No rows selected "
+					state = "save_error"
+					tb.HideCursor()
+					ui.Render(p0)
+				} else {
+					state = "save"
+					p0.Text = " Save marked rows to file: " + savePath
+					tb.SetCursor(len(p0.Text)+1, 1)
+					ui.Render(p0)
+				}
 			case "/":
 				p0.Text = " Search: " + query
 				tb.SetCursor(len(p0.Text)+1, 1)
@@ -722,4 +886,48 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 		tv.activeRow = lastIdx
 	}
 
+}
+
+func (tv *TextPager) clearMarked() {
+	e := tv.topRow
+	for i := 0; e.Next() != nil; i++ {
+		t, _ := e.Value.(*TextRecord)
+		t.Flag = false
+		e = e.Next()
+	}
+}
+
+func (tv *TextPager) saveToFile(fname string) error {
+
+	f, err := os.Create(fname)
+	defer f.Close()
+	if err != nil {
+		return err
+	}
+
+	for i, v := range tv.txt.Header {
+		if i > 0 {
+			f.WriteString("\t")
+		}
+		f.WriteString(v)
+	}
+	f.WriteString("\n")
+
+	e := tv.topRow
+	for i := 0; e.Next() != nil; i++ {
+		t, _ := e.Value.(*TextRecord)
+		if t.Flag {
+			for i, v := range t.Values {
+				if i > 0 {
+					f.WriteString("\t")
+				}
+				f.WriteString(v)
+			}
+			f.WriteString("\n")
+		}
+
+		e = e.Next()
+	}
+
+	return nil
 }
