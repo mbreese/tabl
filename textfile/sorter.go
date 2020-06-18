@@ -1,6 +1,7 @@
 package textfile
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -43,7 +44,6 @@ func (tes *TextSorter) WriteFile(out io.Writer) error {
 	// }
 
 	files := make([]*os.File, 0)
-	// fmt.Printf("tmpFiles: %v, len:%d\n", files, len(files))
 	defer cleanUpTemp(&files)
 
 	var line *TextRecord
@@ -89,11 +89,14 @@ func (tes *TextSorter) WriteFile(out io.Writer) error {
 				return fErr
 			}
 
+			gzTmp := gzip.NewWriter(curTemp)
+
 			for _, rec := range records {
-				tes.writeLine(curTemp, rec.val)
+				tes.writeLine(gzTmp, rec.val)
 			}
 			pos = 0
 
+			gzTmp.Close()
 			files = append(files, curTemp)
 		}
 
@@ -107,16 +110,20 @@ func (tes *TextSorter) WriteFile(out io.Writer) error {
 			return fErr
 		}
 
+		gzTmp := gzip.NewWriter(curTemp)
+
 		for _, rec := range records[:pos] {
-			tes.writeLine(curTemp, rec.val)
+			tes.writeLine(gzTmp, rec.val)
 		}
-		curTemp.Close()
 		pos = 0
 
+		gzTmp.Close()
 		files = append(files, curTemp)
 	}
 
 	tes.txt.Close()
+
+	// fmt.Printf("tmpFiles: %v, len:%d\n", files, len(files))
 
 	// merge the temp files
 
@@ -139,12 +146,12 @@ func (tes *TextSorter) WriteFile(out io.Writer) error {
 		// fmt.Printf("Sort Buffer: %v\n", sortBuffer)
 		sort.Sort(sortBuffer)
 		lowest := sortBuffer[0]
-		// fmt.Printf("Lowest: %v\n", lowest)
+		// fmt.Printf("Lowest: %v, idx:%d\n", lowest.val, lowest.idx)
 		tes.writeLine(out, lowest.val)
 		rec, tErr := sortReaders[lowest.idx].ReadLine()
 
 		if tErr != nil {
-			lowest.val = nil
+			sortBuffer[0].val = nil
 			sortReaders[lowest.idx].Close()
 			sortReaders[lowest.idx] = nil
 			validReaders--
