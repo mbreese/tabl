@@ -497,3 +497,13 @@ func (txt *DelimitedTextFile) splitLine(buf string) []string {
 
 	return cols
 }
+
+// GetValue - Fetch a value from a record by column name
+func (rec *TextRecord) GetValue(k string) (string, error) {
+	for i, v := range rec.parent.Header {
+		if v == k {
+			return rec.Values[i], nil
+		}
+	}
+	return "", fmt.Errorf("Missing column: %s", k)
+}
