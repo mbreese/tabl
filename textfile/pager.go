@@ -81,7 +81,7 @@ func (tv *TextPager) load() {
 	// headerIdx := -1
 	// we will need to auto-determine the column widths
 
-	for i := 0; i < linesForEstimation; i++ {
+	for i := 0; i < linesForEstimation; {
 		line, err = tv.txt.ReadLine()
 		if err != nil {
 			// fmt.Printf("Got an err: %s, (line: %v)\n", err, line)
@@ -92,6 +92,8 @@ func (tv *TextPager) load() {
 		if line.Values == nil {
 			continue
 		}
+		// only incr here to avoid reading headers
+		i++
 
 		// first, let's add the header (if missing)
 		if tv.colNames == nil {
