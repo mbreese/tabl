@@ -32,7 +32,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:     "tabl",
 		Short:   "Utilities for working with tab-delimited text files",
-		Version: "0.1.2",
+		Version: "0.1.3",
 	}
 )
 
