@@ -174,6 +174,8 @@ func (tv *TextPager) Show() {
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
 	}
+	// Force a consistent color mode across terminals (tmux/screen on RHEL8 can default poorly).
+	tb.SetOutputMode(tb.Output256)
 	defer ui.Close()
 
 	// width, height, err := terminal.GetSize(0)
@@ -714,7 +716,7 @@ ESC to hide help text
 	}
 }
 
-var defaultStyle ui.Style = ui.NewStyle(ui.ColorClear)
+var defaultStyle ui.Style = ui.NewStyle(ui.ColorWhite, ui.ColorClear)
 var activeStyle ui.Style = ui.NewStyle(ui.ColorClear, ui.ColorClear, ui.ModifierBold|ui.ModifierReverse)
 var headerStyle ui.Style = ui.NewStyle(ui.ColorClear, ui.ColorClear, ui.ModifierBold|ui.ModifierUnderline)
 var markedStyle ui.Style = ui.NewStyle(ui.ColorGreen, ui.ColorClear, ui.ModifierBold|ui.ModifierReverse)

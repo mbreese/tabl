@@ -6,6 +6,8 @@ This is going to be a whole port over from an earlier Python package: [tabutils]
 
 For more information, see here: [https://compgen.io/tabl](https://compgen.io/tabl).
 
+Note: The `tabl less` pager forces 256-color output to keep formatting/colors consistent on terminals like tmux/screen (especially on RHEL8).
+
 ## Examples
 
 ![Demo](https://github.com/compgen-io/tabl-docs/raw/master/assets/img/tabl-demo-2.gif)
