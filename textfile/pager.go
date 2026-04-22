@@ -32,6 +32,7 @@ type TextPager struct {
 	colSticky     []bool
 	colSelectMode bool
 	activeCol     int
+	searchQuery   string
 }
 
 // NewTextPager - create a new text viewer
@@ -209,7 +210,8 @@ func (tv *TextPager) Show() {
 	p1.Text = `[tabl                                        help](mod:reverse)
 ------------------------------------------------
 q,Ctrl-C,ESC      Quit the program
-/                 Search
+/                 Search (highlights matches)
+n                 Find next match
 m,Enter           Mark a line
 c                 Clear marked lines
 s                 Save all marked lines to 
@@ -274,6 +276,13 @@ ESC to hide help text
 				ui.Render(p0)
 			case "<Enter>":
 				tb.HideCursor()
+				if query == "" {
+					tv.searchQuery = ""
+					state = "view"
+					tv.updateTable(tbl)
+					ui.Render(tbl)
+					break
+				}
 				found := false
 				cancelled := false
 				origTop := tv.topRow
@@ -334,6 +343,7 @@ ESC to hide help text
 					for tv.lines.Len() > maxLines {
 						tv.lines.Remove(tv.lines.Front())
 					}
+					tv.searchQuery = query
 					state = "view"
 					tv.updateTable(tbl)
 					ui.Render(tbl)
@@ -720,6 +730,45 @@ ESC to hide help text
 					tb.SetCursor(len(p0.Text)+1, 1)
 					ui.Render(p0)
 				}
+			case "n":
+				// find next match
+				if tv.searchQuery == "" {
+					break
+				}
+				found := false
+				for el := tv.topRow; !found && el != nil; el = el.Next() {
+					line, ok := el.Value.(*TextRecord)
+					if !ok || line == nil || line.Values == nil {
+						continue
+					}
+					for i, v := range line.Values {
+						if el == tv.topRow && i <= lastMatchCol {
+							continue
+						}
+						if strings.Contains(v, tv.searchQuery) {
+							found = true
+							tv.leftCol = i
+							tv.topRow = el
+							tv.activeRow = 1
+							lastMatchCol = i
+							break
+						}
+					}
+					if !found && el.Next() == nil && !tv.txt.isEOF {
+						l, err := tv.txt.ReadLine()
+						if err != nil {
+							break
+						}
+						tv.lines.PushBack(l)
+					}
+				}
+				if found {
+					for tv.lines.Len() > maxLines {
+						tv.lines.Remove(tv.lines.Front())
+					}
+				}
+				tv.updateTable(tbl)
+				ui.Render(tbl)
 			case "/":
 				p0.Text = " Search: " + query
 				tb.SetCursor(len(p0.Text)+1, 1)
@@ -870,6 +919,10 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 				r := []rune(line.Values[v])
 				if len(r) > widths[j] {
 					vals[j] = string(r[:widths[j]]) + "$"
+				}
+
+				if tv.searchQuery != "" && strings.Contains(vals[j], tv.searchQuery) {
+					vals[j] = strings.ReplaceAll(vals[j], tv.searchQuery, "["+tv.searchQuery+"](fg:yellow,mod:bold)")
 				}
 			} else {
 				// pad out the end if we are missing values for this row
