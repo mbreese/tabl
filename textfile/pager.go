@@ -235,7 +235,8 @@ ESC to hide help text
 
 	lastMatchCol := 0
 
-	for e := range ui.PollEvents() {
+	events := ui.PollEvents()
+	for e := range events {
 		// fmt.Printf("%v\n", e)
 		if state == "help" {
 			switch e.ID {
@@ -272,46 +273,59 @@ ESC to hide help text
 			case "<Enter>":
 				tb.HideCursor()
 				found := false
+				cancelled := false
 				origTop := tv.topRow
 				origActive := tv.activeRow
 
-				for e := tv.topRow; !found && e != nil; e = e.Next() {
-					line, _ := e.Value.(*TextRecord)
-					if line.Values != nil {
-						for i, v := range line.Values {
-							if e == tv.topRow && i <= lastMatchCol {
-								continue
-							}
-							if strings.Contains(v, query) {
-								found = true
-								tv.leftCol = i
-								tv.topRow = e
-								tv.activeRow = 1
-								lastMatchCol = i
-								break
-							}
+				p0.Text = " Searching... (Ctrl-C to cancel)"
+				ui.Render(p0)
+
+				for el := tv.topRow; !found && el != nil; el = el.Next() {
+					// check for cancel events (non-blocking)
+					select {
+					case ev := <-events:
+						if ev.ID == "<C-c>" || ev.ID == "<Escape>" {
+							cancelled = true
+						}
+					default:
+					}
+					if cancelled {
+						break
+					}
+
+					line, ok := el.Value.(*TextRecord)
+					if !ok || line == nil || line.Values == nil {
+						continue
+					}
+					for i, v := range line.Values {
+						if el == tv.topRow && i <= lastMatchCol {
+							continue
+						}
+						if strings.Contains(v, query) {
+							found = true
+							tv.leftCol = i
+							tv.topRow = el
+							tv.activeRow = 1
+							lastMatchCol = i
+							break
 						}
 					}
-					if !found && e.Next() == nil && !tv.txt.isEOF {
-						// need to load more lines!
-						// qfmt.Fprintln(os.Stderr, "Loading more lines")
+					if !found && el.Next() == nil && !tv.txt.isEOF {
 						l, err := tv.txt.ReadLine()
-
 						if err != nil {
 							break
 						}
 						tv.lines.PushBack(l)
-
-						// if we want to trim the buffer as we search... (but this limits what to do if the query isn't found)
-						// for tv.lines.Len() > maxLines {
-						// 	tv.lines.Remove(tv.lines.Front())
-						// }
 					}
 				}
-				if !found {
+				if cancelled {
+					p0.Text = " Search cancelled"
+					ui.Render(p0)
+					tv.topRow = origTop
+					tv.activeRow = origActive
+				} else if !found {
 					p0.Text = " Not found!"
 					ui.Render(p0)
-
 					tv.topRow = origTop
 					tv.activeRow = origActive
 				} else {
