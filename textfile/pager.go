@@ -176,6 +176,8 @@ func (tv *TextPager) Show() {
 	}
 	// Force a consistent color mode across terminals (tmux/screen on RHEL8 can default poorly).
 	tb.SetOutputMode(tb.Output256)
+	// Disable mouse capture so the terminal's native text selection works.
+	tb.SetInputMode(tb.InputEsc)
 	defer ui.Close()
 
 	// width, height, err := terminal.GetSize(0)
