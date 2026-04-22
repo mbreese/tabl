@@ -1,18 +1,21 @@
 SOURCES := $(shell find . -name '*.go')
 
-bin/tabl.linux_amd64: bin/tabl
+bin/tabl: $(SOURCES)
+	go build -o bin/tabl main.go
+
+bin/tabl.linux_amd64: $(SOURCES)
 	GOOS=linux GOARCH=amd64 go build -o bin/tabl.linux_amd64 main.go
 
-bin/tabl.linux_arm64: bin/tabl
-	GOOS=linux GOARCH=arm64 go build -o bin/tabl.linux_aarm64 main.go
+bin/tabl.linux_arm64: $(SOURCES)
+	GOOS=linux GOARCH=arm64 go build -o bin/tabl.linux_arm64 main.go
 
-bin/tabl.macos_amd64: bin/tabl
+bin/tabl.macos_amd64: $(SOURCES)
 	GOOS=darwin GOARCH=amd64 go build -o bin/tabl.macos_amd64 main.go
 
-bin/tabl.macos_arm64: bin/tabl
-	GOOS=darwin GOARCH=amd64 go build -o bin/tabl.macos_arm64 main.go
+bin/tabl.macos_arm64: $(SOURCES)
+	GOOS=darwin GOARCH=arm64 go build -o bin/tabl.macos_arm64 main.go
 
-bin/tabl.exe: bin/tabl
+bin/tabl.exe: $(SOURCES)
 	GOOS=windows GOARCH=amd64 go build -o bin/tabl.exe main.go
 
 
