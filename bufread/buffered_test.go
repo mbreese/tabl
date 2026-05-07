@@ -5,7 +5,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/mbreese/tabl/bufread"
+	"github.com/compgen-io/tabl/bufread"
 )
 
 func TestOpen(t *testing.T) {

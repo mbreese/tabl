@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/mbreese/tabl/textfile"
+	"github.com/compgen-io/tabl/textfile"
 )
 
 // MultiColumnVar allow multiple values for an arg

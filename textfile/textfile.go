@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/mbreese/tabl/bufread"
+	"github.com/compgen-io/tabl/bufread"
 )
 
 var defaultBufferSize int = 64 * 1024

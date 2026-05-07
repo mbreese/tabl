@@ -24,8 +24,8 @@ run:
 
 test:
 	go test -v -cover \
-		github.com/mbreese/tabl/bufread \
-		github.com/mbreese/tabl/textfile
+		github.com/compgen-io/tabl/bufread \
+		github.com/compgen-io/tabl/textfile
 
 clean:
 	rm bin/*

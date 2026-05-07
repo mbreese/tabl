@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/mbreese/tabl/support"
+	"github.com/compgen-io/tabl/support"
 )
 
 const linesForEstimation int = 10000

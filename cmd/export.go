@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/mbreese/tabl/textfile"
+	"github.com/compgen-io/tabl/textfile"
 	"github.com/spf13/cobra"
 )
 

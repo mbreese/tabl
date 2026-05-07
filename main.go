@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/mbreese/tabl/cmd"
+	"github.com/compgen-io/tabl/cmd"
 )
 
 func main() {

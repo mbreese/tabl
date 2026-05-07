@@ -8,7 +8,7 @@ import (
 
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
-	"github.com/mbreese/tabl/support"
+	"github.com/compgen-io/tabl/support"
 	tb "github.com/nsf/termbox-go"
 )
 

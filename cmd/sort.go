@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mbreese/tabl/textfile"
+	"github.com/compgen-io/tabl/textfile"
 	"github.com/spf13/cobra"
 )
 
