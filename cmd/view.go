@@ -12,6 +12,8 @@ func init() {
 	viewCmd.Flags().BoolVarP(&ShowComments, "show-comments", "H", false, "Show comments")
 	viewCmd.Flags().BoolVarP(&ShowLineNum, "show-linenum", "L", false, "Show line number")
 	viewCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
+	viewCmd.Flags().BoolVar(&IsParquet, "parquet", false, "The file is a Parquet file")
+	viewCmd.Flags().StringVar(&NAString, "na", "", "Value shown for NULL cells (Parquet)")
 	viewCmd.Flags().BoolVar(&HeaderComment, "header-comment", false, "The header is the last commented line")
 	viewCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
 	viewCmd.Flags().IntVar(&MinWidth, "min", 0, "Minimum column width")
@@ -35,15 +37,10 @@ var viewCmd = &cobra.Command{
 		if len(args) == 0 {
 			args = []string{"-"}
 		}
-		var txt *textfile.DelimitedTextFile
-		if !IsCSV {
-			txt = textfile.NewTabFile(args[0])
-		} else {
-			txt = textfile.NewCSVFile(args[0])
+		txt, err := openReader(cmd, args[0])
+		if err != nil {
+			er(err)
 		}
-
-		txt = txt.WithNoHeader(NoHeader).
-			WithHeaderComment(HeaderComment)
 
 		textfile.NewTextViewer(txt).
 			WithShowComments(ShowComments).

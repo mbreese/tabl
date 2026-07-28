@@ -9,12 +9,12 @@ import (
 
 // CSVExporter is used to export specific columns from a tab delimited file
 type CSVExporter struct {
-	txt          *DelimitedTextFile
+	txt          RecordReader
 	showComments bool
 }
 
 // NewCSVExporter - create a new text exporter
-func NewCSVExporter(f *DelimitedTextFile) *CSVExporter {
+func NewCSVExporter(f RecordReader) *CSVExporter {
 	return &CSVExporter{
 		txt:          f,
 		showComments: false,
@@ -36,6 +36,10 @@ func (tex *CSVExporter) WriteFile(out io.Writer) error {
 	for err == nil {
 		line, err = tex.txt.ReadLine()
 		if err != nil {
+			if err != io.EOF {
+				tex.txt.Close()
+				return err
+			}
 			break
 		}
 
@@ -48,7 +52,7 @@ func (tex *CSVExporter) WriteFile(out io.Writer) error {
 		}
 
 		if !wroteHeader {
-			if !tex.txt.noHeader {
+			if !tex.txt.NoHeader() {
 				err := tex.writeHeader(out)
 				if err != nil {
 					return err
@@ -68,10 +72,10 @@ func (tex *CSVExporter) WriteFile(out io.Writer) error {
 }
 
 func (tex *CSVExporter) writeHeader(out io.Writer) error {
-	if tex.txt.noHeader {
+	if tex.txt.NoHeader() {
 		return nil
 	}
-	for i, v := range tex.txt.Header {
+	for i, v := range tex.txt.GetHeader() {
 		if i > 0 {
 			fmt.Fprint(out, "\t")
 		}
