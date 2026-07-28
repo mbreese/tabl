@@ -1,7 +1,7 @@
 SOURCES := $(shell find . -name '*.go')
 
 bin/tabl: $(SOURCES)
-	go build -o bin/tabl main.go
+	CGO_ENABLED=0 go build -o bin/tabl main.go
 
 bin/tabl.linux_amd64: $(SOURCES)
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/tabl.linux_amd64 main.go
