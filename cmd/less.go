@@ -13,6 +13,8 @@ func init() {
 	lessCmd.Flags().BoolVar(&NoHeader, "no-header", false, "File has no header")
 	lessCmd.Flags().BoolVar(&HeaderComment, "header-comment", false, "The header is the last commented line")
 	lessCmd.Flags().BoolVar(&IsCSV, "csv", false, "The file is a CSV file")
+	lessCmd.Flags().BoolVar(&IsParquet, "parquet", false, "The file is a Parquet file")
+	lessCmd.Flags().StringVar(&NAString, "na", "", "Value shown for NULL cells (Parquet)")
 	lessCmd.Flags().IntVar(&MinWidth, "min", 0, "Minimum column width")
 	lessCmd.Flags().IntVar(&MaxWidth, "max", 0, "Maximum column width")
 	rootCmd.AddCommand(lessCmd)
@@ -34,15 +36,10 @@ var lessCmd = &cobra.Command{
 		if len(args) == 0 {
 			args = []string{"-"}
 		}
-		var txt *textfile.DelimitedTextFile
-		if !IsCSV {
-			txt = textfile.NewTabFile(args[0])
-		} else {
-			txt = textfile.NewCSVFile(args[0])
+		txt, err := openReader(cmd, args[0])
+		if err != nil {
+			er(err)
 		}
-
-		txt = txt.WithNoHeader(NoHeader).
-			WithHeaderComment(HeaderComment)
 
 		textfile.NewTextPager(txt).
 			WithShowLineNum(ShowLineNum).

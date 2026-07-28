@@ -47,7 +47,7 @@ type TextRecord struct {
 	RawString   string
 	Flag        bool
 	ByteSize    int
-	parent      *DelimitedTextFile
+	parent      RecordReader
 }
 
 // NewDelimitedFile returns an open delimited text file
@@ -101,6 +101,31 @@ func (txt *DelimitedTextFile) WithNoHeader(val bool) *DelimitedTextFile {
 func (txt *DelimitedTextFile) WithHeaderComment(val bool) *DelimitedTextFile {
 	txt.headerComment = val
 	return txt
+}
+
+// GetHeader - the column names (RecordReader)
+func (txt *DelimitedTextFile) GetHeader() []string {
+	return txt.Header
+}
+
+// IsEOF - have we hit the end of the file? (RecordReader)
+func (txt *DelimitedTextFile) IsEOF() bool {
+	return txt.isEOF
+}
+
+// NoHeader - is the first row data rather than a header? (RecordReader)
+func (txt *DelimitedTextFile) NoHeader() bool {
+	return txt.noHeader
+}
+
+// HeaderLine - the header as it appeared in the source file (RecordReader).
+// If the header was a comment, that's the line we want; otherwise it's the
+// first non-comment line. Returns "" if we haven't read far enough to know.
+func (txt *DelimitedTextFile) HeaderLine() string {
+	if txt.headerComment {
+		return txt.lastComment
+	}
+	return txt.rawHeaderLine
 }
 
 func (txt *DelimitedTextFile) nextRune() (rune, error) {
@@ -500,7 +525,7 @@ func (txt *DelimitedTextFile) splitLine(buf string) []string {
 
 // GetValue - Fetch a value from a record by column name
 func (rec *TextRecord) GetValue(k string) (string, error) {
-	for i, v := range rec.parent.Header {
+	for i, v := range rec.parent.GetHeader() {
 		if v == k {
 			return rec.Values[i], nil
 		}

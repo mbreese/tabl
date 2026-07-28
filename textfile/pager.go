@@ -16,7 +16,7 @@ const maxLines = 20000
 
 // TextPager is a viewer for tab-delimited data, it handles formatting and showing the data on a stream
 type TextPager struct {
-	txt           *DelimitedTextFile
+	txt           RecordReader
 	showComments  bool
 	showLineNum   bool
 	minWidth      int
@@ -36,7 +36,7 @@ type TextPager struct {
 }
 
 // NewTextPager - create a new text viewer
-func NewTextPager(f *DelimitedTextFile) *TextPager {
+func NewTextPager(f RecordReader) *TextPager {
 	return &TextPager{
 		txt:           f,
 		showComments:  false,
@@ -98,14 +98,14 @@ func (tv *TextPager) load() {
 
 		// first, let's add the header (if missing)
 		if tv.colNames == nil {
-			tv.colNames = make([]string, len(tv.txt.Header))
-			copy(tv.colNames, tv.txt.Header)
+			tv.colNames = make([]string, len(tv.txt.GetHeader()))
+			copy(tv.colNames, tv.txt.GetHeader())
 
-			tv.colWidth = make([]int, len(tv.txt.Header))
-			tv.colSticky = make([]bool, len(tv.txt.Header))
+			tv.colWidth = make([]int, len(tv.txt.GetHeader()))
+			tv.colSticky = make([]bool, len(tv.txt.GetHeader()))
 
-			for j := 0; j < len(tv.txt.Header); j++ {
-				r := []rune(tv.txt.Header[j] + "   ")
+			for j := 0; j < len(tv.txt.GetHeader()); j++ {
+				r := []rune(tv.txt.GetHeader()[j] + "   ")
 				tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
 				if tv.maxWidth > 0 {
 					tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
@@ -113,20 +113,20 @@ func (tv *TextPager) load() {
 			}
 		}
 
-		if len(tv.colNames) < len(tv.txt.Header) {
-			tv.colNames = make([]string, len(tv.txt.Header))
-			copy(tv.colNames, tv.txt.Header)
+		if len(tv.colNames) < len(tv.txt.GetHeader()) {
+			tv.colNames = make([]string, len(tv.txt.GetHeader()))
+			copy(tv.colNames, tv.txt.GetHeader())
 
-			newWidths := make([]int, len(tv.txt.Header))
+			newWidths := make([]int, len(tv.txt.GetHeader()))
 			copy(newWidths, tv.colWidth)
 			tv.colWidth = newWidths
 
-			newSticky := make([]bool, len(tv.txt.Header))
+			newSticky := make([]bool, len(tv.txt.GetHeader()))
 			copy(newSticky, tv.colSticky)
 			tv.colSticky = newSticky
 
-			for j := 0; j < len(tv.txt.Header); j++ {
-				r := []rune(tv.txt.Header[j] + "   ")
+			for j := 0; j < len(tv.txt.GetHeader()); j++ {
+				r := []rune(tv.txt.GetHeader()[j] + "   ")
 				tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
 				if tv.maxWidth > 0 {
 					tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
@@ -321,7 +321,7 @@ ESC to hide help text
 							break
 						}
 					}
-					if !found && el.Next() == nil && !tv.txt.isEOF {
+					if !found && el.Next() == nil && !tv.txt.IsEOF() {
 						l, err := tv.txt.ReadLine()
 						if err != nil {
 							break
@@ -587,7 +587,7 @@ ESC to hide help text
 				e := tv.topRow
 				i := 0
 				for i = 0; e.Next() != nil && i < tv.visibleRows-3; i++ {
-					if e.Next() == nil && !tv.txt.isEOF {
+					if e.Next() == nil && !tv.txt.IsEOF() {
 						// need to load more lines!
 						// qfmt.Fprintln(os.Stderr, "Loading more lines")
 						l, err := tv.txt.ReadLine()
@@ -754,7 +754,7 @@ ESC to hide help text
 							break
 						}
 					}
-					if !found && el.Next() == nil && !tv.txt.isEOF {
+					if !found && el.Next() == nil && !tv.txt.IsEOF() {
 						l, err := tv.txt.ReadLine()
 						if err != nil {
 							break
@@ -943,7 +943,7 @@ func (tv *TextPager) updateTable(tbl *widgets.Table) {
 			tbl.RowStyles[i] = defaultStyle
 		}
 
-		if e.Next() == nil && !tv.txt.isEOF {
+		if e.Next() == nil && !tv.txt.IsEOF() {
 			// need to load more lines!
 			// qfmt.Fprintln(os.Stderr, "Loading more lines")
 			l, err := tv.txt.ReadLine()
@@ -978,11 +978,7 @@ func (tv *TextPager) saveToFile(fname string) error {
 		return err
 	}
 
-	if tv.txt.headerComment {
-		f.WriteString(tv.txt.lastComment)
-	} else if tv.txt.rawHeaderLine != "" {
-		f.WriteString(tv.txt.rawHeaderLine)
-	}
+	f.WriteString(tv.txt.HeaderLine())
 
 	e := tv.topRow
 	for i := 0; e.Next() != nil; i++ {

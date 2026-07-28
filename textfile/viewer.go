@@ -13,7 +13,7 @@ const linesForEstimation int = 10000
 
 // TextViewer is a viewer for tab-delimited data, it handles formatting and showing the data on a stream
 type TextViewer struct {
-	txt          *DelimitedTextFile
+	txt          RecordReader
 	showComments bool
 	showLineNum  bool
 	noHeader     bool
@@ -25,7 +25,7 @@ type TextViewer struct {
 }
 
 // NewTextViewer - create a new text viewer
-func NewTextViewer(f *DelimitedTextFile) *TextViewer {
+func NewTextViewer(f RecordReader) *TextViewer {
 	return &TextViewer{
 		txt:          f,
 		showComments: false,
@@ -83,12 +83,12 @@ func (tv *TextViewer) WriteFile(out io.Writer) {
 		}
 
 		if tv.colNames == nil {
-			tv.colNames = make([]string, len(tv.txt.Header))
-			copy(tv.colNames, tv.txt.Header)
-			tv.colWidth = make([]int, len(tv.txt.Header))
+			tv.colNames = make([]string, len(tv.txt.GetHeader()))
+			copy(tv.colNames, tv.txt.GetHeader())
+			tv.colWidth = make([]int, len(tv.txt.GetHeader()))
 
-			for j := 0; j < len(tv.txt.Header); j++ {
-				r := []rune(tv.txt.Header[j] + "   ")
+			for j := 0; j < len(tv.txt.GetHeader()); j++ {
+				r := []rune(tv.txt.GetHeader()[j] + "   ")
 				tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
 				if tv.maxWidth > 0 {
 					tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
@@ -96,15 +96,15 @@ func (tv *TextViewer) WriteFile(out io.Writer) {
 			}
 		}
 
-		if len(tv.colNames) < len(tv.txt.Header) {
-			tv.colNames = make([]string, len(tv.txt.Header))
-			copy(tv.colNames, tv.txt.Header)
-			newWidths := make([]int, len(tv.txt.Header))
+		if len(tv.colNames) < len(tv.txt.GetHeader()) {
+			tv.colNames = make([]string, len(tv.txt.GetHeader()))
+			copy(tv.colNames, tv.txt.GetHeader())
+			newWidths := make([]int, len(tv.txt.GetHeader()))
 			copy(newWidths, tv.colWidth)
 			tv.colWidth = newWidths
 
-			for j := 0; j < len(tv.txt.Header); j++ {
-				r := []rune(tv.txt.Header[j] + "   ")
+			for j := 0; j < len(tv.txt.GetHeader()); j++ {
+				r := []rune(tv.txt.GetHeader()[j] + "   ")
 				tv.colWidth[j] = support.MaxInt(tv.minWidth, tv.colWidth[j], len(r))
 				if tv.maxWidth > 0 {
 					tv.colWidth[j] = support.MinInt(tv.colWidth[j], tv.maxWidth)
@@ -155,7 +155,7 @@ func (tv *TextViewer) WriteFile(out io.Writer) {
 }
 
 func (tv *TextViewer) writeHeader(out io.Writer) {
-	for i, v := range tv.txt.Header {
+	for i, v := range tv.txt.GetHeader() {
 		if i > 0 {
 			fmt.Fprint(out, "| ")
 		}
@@ -172,7 +172,7 @@ func (tv *TextViewer) writeHeader(out io.Writer) {
 	}
 	fmt.Fprint(out, "\n")
 
-	for i := 0; i < len(tv.txt.Header); i++ {
+	for i := 0; i < len(tv.txt.GetHeader()); i++ {
 		if i > 0 {
 			fmt.Fprint(out, "=+=")
 		} else if tv.showLineNum {
